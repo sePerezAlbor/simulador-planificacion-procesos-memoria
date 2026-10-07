@@ -1,10 +1,10 @@
 # Simulador de Planificación de Procesos
 
-Página local para resolver y verificar ejercicios de **administración de procesos** de Sistemas Operativos.
+Herramienta para resolver y verificar ejercicios de **administración de procesos** de Sistemas Operativos.
 
-Es un solo archivo HTML: se abre con doble clic, no necesita instalar nada ni conexión a internet.
+### 👉 [Abrir el simulador](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/planificacion-procesos.html)
 
-👉 [`planificacion-procesos.html`](planificacion-procesos.html)
+También se puede usar sin internet: es un solo archivo HTML, así que basta con descargar [`planificacion-procesos.html`](planificacion-procesos.html) y abrirlo con doble clic. No hay que instalar nada.
 
 ## Qué hace
 
