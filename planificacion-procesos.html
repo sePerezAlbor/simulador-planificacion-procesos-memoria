@@ -6,10 +6,26 @@
 <title>Simulador de Planificación de Procesos</title>
 <style>
   :root{
-    --bg:#f4f6f8; --card:#ffffff; --line:#c9d2db; --line2:#e4e9ee;
-    --txt:#1d2733; --muted:#64748b; --accent:#1d5fa8; --accent2:#e8f0fa;
-    --ok:#15803d; --okbg:#e7f6ec; --err:#b91c1c; --errbg:#fdecec;
+    --bg:#f4f6f8; --card:#ffffff; --th:#eef2f6;
+    --line:#c9d2db; --line2:#e4e9ee;
+    --txt:#1d2733; --muted:#64748b;
+    --accent:#1d5fa8; --accent2:#e8f0fa; --accentLine:#cfe0f2; --onAccent:#ffffff;
+    --ok:#15803d; --okbg:#e7f6ec; --okTxt:#2a4b33;
+    --err:#b91c1c; --errbg:#fdecec; --errLine:#f3b7b7;
+    --hl:#fffbe6;
     --libre:#f1f3f5; --cpu:#dff0d8; --io:#fde9c9;
+    color-scheme:light;
+  }
+  :root[data-tema="oscuro"]{
+    --bg:#0f141a; --card:#19212a; --th:#222c38;
+    --line:#37434f; --line2:#262f3a;
+    --txt:#e3eaf2; --muted:#93a2b3;
+    --accent:#7ab6f2; --accent2:#1b2a3a; --accentLine:#2d4560; --onAccent:#0d1620;
+    --ok:#6ad495; --okbg:#1a3326; --okTxt:#bfe8cd;
+    --err:#ff9f9f; --errbg:#3a2020; --errLine:#6b3434;
+    --hl:#3a3315;
+    --libre:#1f2730; --cpu:#23402d; --io:#453518;
+    color-scheme:dark;
   }
   *{box-sizing:border-box}
   body{
@@ -25,26 +41,26 @@
   .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
   label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:600}
   select,input[type=number],input[type=text]{
-    font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--txt);
+    font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--txt);
   }
   select{min-width:220px}
   button{
     font:inherit;font-weight:600;padding:8px 15px;border:1px solid var(--line);border-radius:6px;
-    background:#fff;color:var(--txt);cursor:pointer;
+    background:var(--card);color:var(--txt);cursor:pointer;
   }
   button:hover{background:var(--accent2);border-color:var(--accent)}
-  button.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.pri{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
   button.pri:hover{filter:brightness(1.12)}
   button.mini{padding:3px 9px;font-size:13px}
   button:disabled{opacity:.4;cursor:not-allowed}
   .chk{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--txt);cursor:pointer;font-weight:500}
 
-  table.xl{border-collapse:collapse;font-size:14px;background:#fff;width:100%}
+  table.xl{border-collapse:collapse;font-size:14px;background:var(--card);width:100%}
   table.xl th,table.xl td{border:1px solid var(--line);padding:5px 9px;text-align:center;white-space:nowrap}
-  table.xl th{background:#eef2f6;font-weight:600;font-size:13px}
+  table.xl th{background:var(--th);font-weight:600;font-size:13px}
   table.xl td.l{text-align:left}
   tr.done{background:var(--okbg)}
-  tr.done td{color:#2a4b33}
+  tr.done td{color:var(--okTxt)}
   .okmark{color:var(--ok);font-weight:700}
   .badge{display:inline-block;background:var(--accent2);color:var(--accent);border-radius:9px;padding:0 7px;font-size:11px;font-weight:700;margin-left:4px}
   .vacia{color:var(--muted);font-size:13px;font-style:italic;padding:6px 2px}
@@ -64,28 +80,36 @@
 
   .crit{margin:0;padding-left:20px;font-size:14px}
   .crit li{margin:2px 0}
-  .critbox{background:var(--accent2);border:1px solid #cfe0f2;border-radius:8px;padding:12px 14px;margin-bottom:10px}
+  .critbox{background:var(--accent2);border:1px solid var(--accentLine);border-radius:8px;padding:12px 14px;margin-bottom:10px}
   .critbox b{color:var(--accent)}
 
   .log{font-size:13.5px;max-height:300px;overflow:auto;margin:0;padding:0;list-style:none}
   .log li{padding:4px 8px;border-bottom:1px solid var(--line2)}
   .log li:last-child{border-bottom:none}
-  .log .sel{background:#fffbe6}
+  .log .sel{background:var(--hl)}
 
-  .err{background:var(--errbg);border:1px solid #f3b7b7;color:var(--err);padding:10px 14px;
+  .err{background:var(--errbg);border:1px solid var(--errLine);color:var(--err);padding:10px 14px;
        border-radius:8px;font-size:14px;margin-bottom:16px;white-space:pre-line}
   .stepbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   .tnow{font-size:19px;font-weight:700;color:var(--accent);min-width:92px}
   .hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
   .tep{font-size:17px;font-weight:700;color:var(--accent);margin-top:10px}
   [hidden]{display:none !important}
+
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  #btnTema{flex:0 0 auto;font-size:13.5px;padding:7px 13px}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <h1>Simulador de Planificación de Procesos</h1>
-  <p class="sub">Administración de procesos &middot; Cola de Trabajo &rarr; Listos &rarr; CPU &rarr; I/O &rarr; Terminados</p>
+  <div class="top">
+    <div>
+      <h1>Simulador de Planificación de Procesos</h1>
+      <p class="sub">Administración de procesos &middot; Cola de Trabajo &rarr; Listos &rarr; CPU &rarr; I/O &rarr; Terminados</p>
+    </div>
+    <button id="btnTema" type="button">Modo oscuro</button>
+  </div>
 
   <!-- 1. CONFIGURACION -->
   <div class="card">
@@ -757,8 +781,32 @@ document.addEventListener('keydown', e => {
   if(e.key === 'ArrowLeft'  && paso > 0){ paso--; render(); }
 });
 
+/* ======================= MODO CLARO / OSCURO ======================= */
+
+function aplicarTema(t){
+  document.documentElement.setAttribute('data-tema', t);
+  document.getElementById('btnTema').textContent =
+    (t === 'oscuro') ? 'Modo claro' : 'Modo oscuro';
+  try{ localStorage.setItem('tema', t); }catch(e){ /* file:// puede bloquearlo */ }
+}
+
+function temaGuardado(){
+  let t = null;
+  try{ t = localStorage.getItem('tema'); }catch(e){}
+  if(t === 'claro' || t === 'oscuro') return t;
+  const oscuroSistema = window.matchMedia &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return oscuroSistema ? 'oscuro' : 'claro';
+}
+
+document.getElementById('btnTema').addEventListener('click', () => {
+  const actual = document.documentElement.getAttribute('data-tema');
+  aplicarTema(actual === 'oscuro' ? 'claro' : 'oscuro');
+});
+
 /* ======================= ARRANQUE ======================= */
 
+aplicarTema(temaGuardado());
 cargarEjemplo();
 pintarCriterios();
 </script>

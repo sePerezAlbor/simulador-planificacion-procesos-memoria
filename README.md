@@ -42,6 +42,8 @@ La **prioridad se interpreta con menor número = mayor prioridad**. El tiempo si
 5. En *Qué pasó en este paso* aparece la justificación de cada selección, con el criterio que desempató y los candidatos que había.
 6. La casilla **Resumir** junta las filas repetidas del mismo proceso cuando corrió sin parar. No altera los totales.
 
+El botón de arriba a la derecha cambia entre **modo claro y oscuro**. Al abrirla por primera vez toma el tema del sistema.
+
 > Al retroceder pasos, el TEP que se muestra es el acumulado hasta ese instante, no el final.
 
 ## Cómo funciona por dentro
