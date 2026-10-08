@@ -1,25 +1,22 @@
-# Simulador de Planificación de Procesos
+# Simuladores de Sistemas Operativos
 
-Herramienta para resolver y verificar ejercicios de **administración de procesos** de Sistemas Operativos.
+Dos herramientas para resolver y verificar los ejercicios de clase. Cada una es un solo archivo HTML: funcionan en el navegador, sin instalar nada y sin conexión.
 
-### 👉 [Abrir el simulador](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/planificacion-procesos.html)
+### 👉 [Planificación de procesos](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/planificacion-procesos.html) &nbsp;·&nbsp; [Gestión de memoria](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/gestion-memoria.html)
 
-También se puede usar sin internet: es un solo archivo HTML, así que basta con descargar [`planificacion-procesos.html`](planificacion-procesos.html) y abrirlo con doble clic. No hay que instalar nada.
+También se pueden descargar ([`planificacion-procesos.html`](planificacion-procesos.html), [`gestion-memoria.html`](gestion-memoria.html)) y abrir con doble clic.
 
-## Qué hace
+Las dos comparten la misma lógica: una **cola de trabajo** que se llena a mano, la marca **OK** sobre cada fila ya atendida, la **espera** calculada como `tiempo actual − llegada`, un **recorrido paso a paso** por cada unidad de tiempo, y **modo claro y oscuro**.
 
-Recibe una **Cola de Trabajo** y simula la planificación paso a paso, mostrando lo mismo que se llena a mano en la hoja:
+---
 
-- Cola de Trabajo, Cola de Listos, Cola de I/O y Cola de Terminados, con la marca **OK** en cada fila ya seleccionada.
-- Diagrama de **CPU** y de **I/O**, una celda por unidad de tiempo, con el rótulo `Px(z)` donde `z` es lo que le queda al proceso al inicio de esa celda, y `LIBRE` cuando el recurso está ocioso.
-- **TP** de cada proceso (suma de todas sus esperas) y **TEP** (promedio).
+## Planificación de procesos
 
-### Tipos de ejercicio
+Recibe una cola de trabajo y simula la planificación mostrando lo mismo que se llena a mano en la hoja: Cola de Trabajo, Cola de Listos, Cola de I/O y Cola de Terminados, los diagramas de **CPU** e **I/O** con una celda por unidad de tiempo, y el **TP** de cada proceso con el **TEP**.
 
-- **Solo CPU**
-- **CPU – I/O – CPU** (tres ráfagas, un único dispositivo de I/O)
+En los diagramas, el rótulo `Px(z)` significa el proceso `Px` con `z` unidades pendientes al inicio de esa celda. `LIBRE` marca el recurso ocioso.
 
-### Algoritmos
+**Tipos de ejercicio:** solo CPU, y CPU – I/O – CPU (tres ráfagas, un único dispositivo de I/O).
 
 | Algoritmo | Orden de desempate |
 |---|---|
@@ -31,24 +28,11 @@ Recibe una **Cola de Trabajo** y simula la planificación paso a paso, mostrando
 | Prioridad apropiativa | prioridad → menor CPU → llegada → primero en la cola |
 | Cola de I/O (siempre FCFS) | llegada → menor I/O → prioridad → primero en la cola |
 
-La **prioridad se interpreta con menor número = mayor prioridad**. El tiempo siempre empieza en 0.
+En Round Robin el **quantum es obligatorio**, no trae valor por defecto. En cada selección se indica **cuál criterio desempató** y qué candidatos había. La casilla **Resumir** junta las filas repetidas del mismo proceso cuando corrió sin parar, sin alterar los totales.
 
-## Cómo se usa
+### Cómo funciona por dentro
 
-1. Elige el tipo de ejercicio y el algoritmo. En Round Robin el **quantum es obligatorio**, no trae valor por defecto.
-2. Llena la Cola de Trabajo, o pulsa **Cargar ejemplo**.
-3. Pulsa **Simular**. Quedas en el resultado final.
-4. Con **◀ Anterior** / **Siguiente ▶** (o las flechas del teclado) recorres la simulación unidad por unidad.
-5. En *Qué pasó en este paso* aparece la justificación de cada selección, con el criterio que desempató y los candidatos que había.
-6. La casilla **Resumir** junta las filas repetidas del mismo proceso cuando corrió sin parar. No altera los totales.
-
-El botón de arriba a la derecha cambia entre **modo claro y oscuro**. Al abrirla por primera vez toma el tema del sistema.
-
-> Al retroceder pasos, el TEP que se muestra es el acumulado hasta ese instante, no el final.
-
-## Cómo funciona por dentro
-
-El motor sigue el pseudocódigo del curso, en este orden dentro de cada unidad de tiempo:
+Sigue el pseudocódigo del curso, en este orden dentro de cada unidad de tiempo:
 
 1. Pasan a Listos los procesos de la Cola de Trabajo con `llegada ≤ Tiempo`.
 2. Si la CPU está libre y hay listos, se selecciona según el algoritmo y se calcula su espera.
@@ -61,8 +45,34 @@ El motor sigue el pseudocódigo del curso, en este orden dentro de cada unidad d
 
 En los apropiativos el proceso vuelve a la Cola de Listos como **fila nueva**, con llegada igual al tiempo actual y la CPU que le queda. En SRTF y prioridad apropiativa eso ocurre cada unidad de tiempo. Cuando en un mismo instante sale un proceso de la CPU y llega otro de la Cola de Trabajo, **entra primero el que salió de la CPU**.
 
+---
+
+## Gestión de memoria
+
+Recibe una cola de trabajo y simula la ocupación de la RAM instante por instante. Cada columna del diagrama es una unidad de tiempo, y dentro van los bloques de memoria de arriba hacia abajo con el rótulo `Px(tamañoK) (tiempo que le queda)` o `LIBRE (tamaño)`.
+
+**Modos:** particiones fijas, particiones variables, y particiones variables con compactación.
+
+**Algoritmos de ajuste:** primer ajuste, mejor ajuste y peor ajuste, para escoger entre los huecos libres donde cabe el proceso.
+
+### Cómo funciona por dentro
+
+En cada unidad de tiempo:
+
+1. Se recorre la cola de trabajo en orden. Los que ya llegaron y no están en memoria se intentan ubicar con el algoritmo de ajuste. **El que no quepa se salta** y lo intenta el siguiente.
+2. Se dibuja la columna de ese instante.
+3. Baja en 1 el tiempo restante de cada proceso en memoria.
+4. `Tiempo = Tiempo + 1`.
+5. Salen los procesos que llegaron a 0 y pasan a Terminados, **en el orden en que estaban en memoria**, de arriba hacia abajo.
+6. Los huecos libres que quedan pegados **se fusionan en uno solo**.
+7. En modo compactación, los procesos que quedan **se corren hacia arriba**, dejando un único hueco al final. Esos instantes se marcan en el diagrama.
+
+En **particiones fijas** la memoria se divide en particiones iguales y la división debe ser exacta. Un proceso más grande que una partición ocupa **varias seguidas**: con particiones de 200K, un proceso de 210K queda como `P2(200K)` + `P2(10K)`. Lo que sobra dentro de una partición no lo puede usar nadie más.
+
+En **particiones variables** la memoria es un solo bloque que se va partiendo según lo que pida cada proceso.
+
+---
+
 ## Estado
 
-Verificado contra los ejercicios resueltos en clase: reproduce las colas, los diagramas y el TEP celda por celda.
-
-Pendiente: la parte de **gestión de memoria**.
+Las dos están verificadas contra los ejercicios resueltos en clase: reproducen las colas, los diagramas y los tiempos celda por celda.

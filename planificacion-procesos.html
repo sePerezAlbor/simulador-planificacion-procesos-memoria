@@ -98,6 +98,13 @@
 
   .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
   #btnTema{flex:0 0 auto;font-size:13.5px;padding:7px 13px}
+  .nav{display:flex;gap:8px;margin:0 0 18px}
+  .nav a{
+    text-decoration:none;font-size:14px;font-weight:600;padding:7px 16px;border-radius:7px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);
+  }
+  .nav a:hover{border-color:var(--accent);color:var(--accent)}
+  .nav a.activo{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
 </style>
 </head>
 <body>
@@ -110,6 +117,11 @@
     </div>
     <button id="btnTema" type="button">Modo oscuro</button>
   </div>
+
+  <nav class="nav">
+    <a href="planificacion-procesos.html" class="activo">Procesos</a>
+    <a href="gestion-memoria.html">Memoria</a>
+  </nav>
 
   <!-- 1. CONFIGURACION -->
   <div class="card">
