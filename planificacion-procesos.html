@@ -66,6 +66,8 @@
   .vacia{color:var(--muted);font-size:13px;font-style:italic;padding:6px 2px}
 
   .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .grid > .card{min-width:0}
+  .tabla{overflow-x:auto}
 
   .gantt{overflow-x:auto;padding-bottom:4px}
   .gfila{display:flex}
@@ -153,7 +155,7 @@
   <!-- 2. COLA DE TRABAJO -->
   <div class="card">
     <h2>2 &middot; Cola de Trabajo</h2>
-    <div id="editor"></div>
+    <div id="editor" class="tabla"></div>
     <div class="row" style="margin-top:14px">
       <button id="btnAdd">+ Agregar proceso</button>
       <button id="btnEj">Cargar ejemplo</button>
@@ -193,10 +195,10 @@
     </div>
 
     <div class="grid">
-      <div class="card"><h3>Cola de Trabajo</h3><div id="tTrabajo"></div></div>
-      <div class="card"><h3>Cola de Listos</h3><div id="tListos"></div></div>
-      <div class="card" id="cardIO"><h3>Cola de I/O</h3><div id="tIO"></div></div>
-      <div class="card"><h3>Cola de Terminados</h3><div id="tFin"></div></div>
+      <div class="card"><h3>Cola de Trabajo</h3><div id="tTrabajo" class="tabla"></div></div>
+      <div class="card"><h3>Cola de Listos</h3><div id="tListos" class="tabla"></div></div>
+      <div class="card"><h3>Cola de Terminados</h3><div id="tFin" class="tabla"></div></div>
+      <div class="card" id="cardIO"><h3>Cola de I/O</h3><div id="tIO" class="tabla"></div></div>
     </div>
 
     <div class="card">
