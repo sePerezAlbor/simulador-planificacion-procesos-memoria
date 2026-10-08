@@ -28,6 +28,8 @@ En los diagramas, el rótulo `Px(z)` significa el proceso `Px` con `z` unidades 
 | Prioridad apropiativa | prioridad → menor CPU → llegada → primero en la cola |
 | Cola de I/O (siempre FCFS) | llegada → menor I/O → prioridad → primero en la cola |
 
+Trae cargados los **10 ejercicios de práctica** del curso: se escogen en el desplegable junto a *Cargar ejemplo* y cada uno ajusta solo su quantum. El botón **Generar aleatorio** inventa uno nuevo del tipo que tengas puesto, con pocos procesos y ráfagas cortas para que quepa en una hoja.
+
 En Round Robin el **quantum es obligatorio**, no trae valor por defecto. En cada selección se indica **cuál criterio desempató** y qué candidatos había. La casilla **Resumir** junta las filas repetidas del mismo proceso cuando corrió sin parar, sin alterar los totales.
 
 ### Cómo funciona por dentro
@@ -53,7 +55,9 @@ Recibe una cola de trabajo y simula la ocupación de la RAM instante por instant
 
 **Modos:** particiones fijas, particiones variables, y particiones variables con compactación.
 
-**Algoritmos de ajuste:** primer ajuste, mejor ajuste y peor ajuste, para escoger entre los huecos libres donde cabe el proceso.
+**Algoritmos de ajuste:** primer ajuste, mejor ajuste y peor ajuste, para escoger entre los huecos libres donde cabe el proceso. La página explica con un ejemplo dibujado en qué se diferencian.
+
+El botón **Generar aleatorio** inventa un ejercicio del modo que tengas puesto. Descarta los que saldrían triviales: siempre hay al menos un proceso que debe esperar, y en modo compactación siempre se llega a compactar.
 
 ### Cómo funciona por dentro
 

@@ -176,8 +176,10 @@
     <div class="row" style="margin-top:14px">
       <button id="btnAdd">+ Agregar proceso</button>
       <button id="btnEj">Cargar ejemplo</button>
+      <button id="btnAzar">Generar aleatorio</button>
       <button id="btnClear">Vaciar</button>
     </div>
+    <p class="hint" id="avisoAzar" hidden></p>
   </div>
 
   <!-- 3. ALGORITMO DE AJUSTE -->
@@ -800,6 +802,84 @@ document.getElementById('btnEj').addEventListener('click', () => cargarDatos(EJE
 document.getElementById('btnClear').addEventListener('click', () => {
   filas = [];
   pintarEditor();
+  document.getElementById('avisoAzar').hidden = true;
+  document.getElementById('resultados').hidden = true;
+});
+
+/* --- Generador de ejercicios al azar ---
+   Rangos acotados para que el ejercicio quepa en una hoja: pocos procesos,
+   tiempos cortos, y tamaños que obliguen a esperar sin volverse eternos. */
+
+function azar(min, max){ return min + Math.floor(Math.random() * (max - min + 1)); }
+function azarPaso(min, max, paso){ return azar(Math.ceil(min / paso), Math.floor(max / paso)) * paso; }
+
+function candidatoAzar(esFijas){
+  let memoria, tamPart;
+  if(esFijas){
+    tamPart = [100, 150, 200][azar(0, 2)];
+    memoria = tamPart * azar(3, 4);
+  }else{
+    tamPart = 200;
+    memoria = azar(5, 8) * 100;
+  }
+  const minTam = esFijas ? Math.round(tamPart * 0.3) : 50;
+  const maxTam = esFijas ? Math.round(tamPart * 1.6) : Math.round(memoria * 0.55);
+
+  const n = azar(4, 5);
+  const procs = [];
+  let llegada = 0;
+  for(let i = 0; i < n; i++){
+    procs.push({
+      nombre:'P' + (i + 1),
+      llegada: llegada,
+      tamano: azarPaso(minTam, maxTam, 5),
+      tiempo: azar(1, 3)
+    });
+    llegada += azar(0, 2);
+  }
+  return {memoria:memoria, tamPart:tamPart, procs:procs};
+}
+
+// Un ejercicio donde todos los procesos entran de una y nadie espera no sirve para
+// practicar. Por eso se generan varios candidatos, se simulan y se escoge el que
+// más jugo tenga: que alguien espere y, en modo compactación, que se compacte.
+function puntaje(){
+  const s = snaps[snaps.length - 1];
+  const espera = s.trabajo.reduce((a, r) => a + (r.espera ? r.espera.n : 0), 0);
+  const compacto = s.columnas.some(c => c.comp);
+  return {espera:espera, compacto:compacto, valor: espera + (compacto ? 4 : 0)};
+}
+
+document.getElementById('btnAzar').addEventListener('click', () => {
+  const esFijas = (modo === 'fijas');
+  let mejor = null;
+
+  for(let intento = 0; intento < 40; intento++){
+    const cand = candidatoAzar(esFijas);
+    document.getElementById('memoria').value = cand.memoria;
+    document.getElementById('tamPart').value = cand.tamPart;
+    filas = cand.procs.map(p => Object.assign({}, p));
+    simular();
+
+    const p = puntaje();
+    if(!mejor || p.valor > mejor.p.valor) mejor = {cand:cand, p:p};
+    if(p.espera >= 2 && (modo !== 'comp' || p.compacto)) break;
+  }
+
+  document.getElementById('memoria').value = mejor.cand.memoria;
+  document.getElementById('tamPart').value = mejor.cand.tamPart;
+  filas = mejor.cand.procs.map(p => Object.assign({}, p));
+
+  const piden = mejor.cand.procs.reduce((a, p) => a + p.tamano, 0);
+  const aviso = document.getElementById('avisoAzar');
+  aviso.hidden = false;
+  aviso.textContent = 'Ejercicio al azar: ' + mejor.cand.procs.length + ' procesos sobre ' +
+    mejor.cand.memoria + 'K' + (esFijas ? ' en particiones de ' + mejor.cand.tamPart + 'K' : '') +
+    '. Entre todos piden ' + piden + 'K, así que a alguno le toca esperar' +
+    (mejor.p.compacto ? ' y en algún momento hay que compactar' : '') + '.';
+
+  pintarEditor();
+  pintarInfoPart();
   document.getElementById('resultados').hidden = true;
 });
 

@@ -159,8 +159,11 @@
     <div class="row" style="margin-top:14px">
       <button id="btnAdd">+ Agregar proceso</button>
       <button id="btnEj">Cargar ejemplo</button>
+      <select id="selEjer" style="min-width:185px"></select>
+      <button id="btnAzar">Generar aleatorio</button>
       <button id="btnClear">Vaciar</button>
     </div>
+    <p class="hint" id="avisoEjer" hidden></p>
   </div>
 
   <!-- 3. CRITERIOS -->
@@ -273,6 +276,21 @@ const EJEMPLOS = {
     {nombre:'P3', llegada:2, cpu1:1, io:1, cpu2:1, prioridad:3}
   ]
 };
+
+// Ejercicios de práctica del profesor. Todos son de solo CPU.
+// Cada fila es [llegada, CPU, prioridad] y los procesos se nombran P1, P2, ...
+const EJERCICIOS = [
+  {q:2, d:[[0,6,3],[1,4,1],[2,2,4],[3,5,2]]},
+  {q:3, d:[[0,8,4],[0,3,2],[1,5,1],[4,2,3],[6,4,2]]},
+  {q:2, d:[[0,7,3],[2,4,2],[3,1,1],[5,6,4],[6,3,2]]},
+  {q:4, d:[[0,10,5],[1,4,3],[2,6,4],[3,2,1],[5,5,2]]},
+  {q:2, d:[[2,5,2],[4,3,1],[5,7,4],[9,2,3],[12,4,2]]},
+  {q:3, d:[[0,9,4],[1,5,3],[2,3,2],[3,7,5],[4,1,1],[6,4,2]]},
+  {q:2, d:[[0,5,3],[0,5,2],[2,3,2],[2,3,1],[4,6,3],[4,2,1]]},
+  {q:4, d:[[0,12,5],[2,7,4],[4,4,3],[5,2,1],[7,8,6],[9,3,2]]},
+  {q:3, d:[[0,6,4],[1,8,5],[3,2,2],[5,4,3],[6,1,1],[8,5,2],[10,3,1]]},
+  {q:2, d:[[0,11,5],[0,6,3],[1,8,4],[2,4,2],[4,2,1],[6,5,3],[7,1,1]]}
+];
 
 /* ======================= MOTOR DE SIMULACION ======================= */
 
@@ -753,10 +771,84 @@ document.getElementById('btnAdd').addEventListener('click', () => {
   pintarEditor();
 });
 
-document.getElementById('btnEj').addEventListener('click', cargarEjemplo);
+document.getElementById('btnEj').addEventListener('click', () => {
+  cargarEjemplo();
+  document.getElementById('selEjer').value = '';
+  document.getElementById('avisoEjer').hidden = true;
+});
+
+// Selector con los 10 ejercicios de práctica.
+(function(){
+  const sel = document.getElementById('selEjer');
+  let h = '<option value="">Cargar ejercicio&hellip;</option>';
+  EJERCICIOS.forEach((e, i) => h += '<option value="' + i + '">Ejercicio ' + (i + 1) + '</option>');
+  sel.innerHTML = h;
+
+  sel.addEventListener('change', ev => {
+    const i = ev.target.value;
+    if(i === '') return;
+    const e = EJERCICIOS[+i];
+
+    modo = 'cpu';
+    document.getElementById('modo').value = 'cpu';
+    filas = e.d.map((f, k) => ({
+      nombre:'P' + (k + 1), llegada:f[0], cpu1:f[1], io:1, cpu2:1, prioridad:f[2]
+    }));
+    document.getElementById('quantum').value = e.q;
+
+    const aviso = document.getElementById('avisoEjer');
+    aviso.hidden = false;
+    aviso.textContent = 'Ejercicio ' + (+i + 1) + ' cargado: ' + e.d.length +
+      ' procesos, solo CPU. El quantum quedó en ' + e.q + ' para cuando uses Round Robin.';
+
+    pintarEditor();
+    pintarCriterios();
+    document.getElementById('resultados').hidden = true;
+  });
+})();
 
 document.getElementById('btnClear').addEventListener('click', () => {
   filas = [];
+  pintarEditor();
+  document.getElementById('selEjer').value = '';
+  document.getElementById('avisoEjer').hidden = true;
+  document.getElementById('resultados').hidden = true;
+});
+
+/* --- Generador de ejercicios al azar ---
+   Los rangos están acotados a propósito para que el ejercicio quepa en una hoja:
+   pocos procesos, ráfagas cortas y llegadas seguidas. */
+
+function azar(min, max){ return min + Math.floor(Math.random() * (max - min + 1)); }
+
+document.getElementById('btnAzar').addEventListener('click', () => {
+  const conIO = (modo === 'io');
+  const n = conIO ? azar(3, 4) : azar(4, 5);
+  const q = azar(2, 4);
+
+  let llegada = 0;
+  filas = [];
+  for(let i = 0; i < n; i++){
+    filas.push({
+      nombre: 'P' + (i + 1),
+      llegada: llegada,
+      cpu1: conIO ? azar(1, 3) : azar(2, 6),
+      io:   conIO ? azar(1, 3) : 1,
+      cpu2: conIO ? azar(1, 3) : 1,
+      prioridad: azar(1, n)       // se permiten prioridades repetidas, para practicar los desempates
+    });
+    llegada += azar(0, 2);
+  }
+  document.getElementById('quantum').value = q;
+
+  const total = filas.reduce((a, f) => a + (+f.cpu1) + (conIO ? (+f.cpu2) : 0), 0);
+  const aviso = document.getElementById('avisoEjer');
+  aviso.hidden = false;
+  aviso.textContent = 'Ejercicio al azar: ' + n + ' procesos, ' +
+    (conIO ? 'CPU – I/O – CPU' : 'solo CPU') + ', ' + total +
+    ' unidades de CPU en total. El quantum quedó en ' + q + '.';
+
+  document.getElementById('selEjer').value = '';
   pintarEditor();
   document.getElementById('resultados').hidden = true;
 });
