@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador Combinado: Procesos y Memoria</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#ffffff; --th:#eef2f6;
+    --line:#c9d2db; --line2:#e4e9ee;
+    --txt:#1d2733; --muted:#64748b;
+    --accent:#1d5fa8; --accent2:#e8f0fa; --accentLine:#cfe0f2; --onAccent:#ffffff;
+    --ok:#15803d; --okbg:#e7f6ec; --okTxt:#2a4b33;
+    --err:#b91c1c; --errbg:#fdecec; --errLine:#f3b7b7;
+    --hl:#fffbe6;
+    --libre:#f1f3f5; --libreTxt:#64748b;
+    --cpu:#dff0d8; --io:#fde9c9;
+    --sat:45%; --lum:86%; --blqTxt:#1d2733;
+    color-scheme:light;
+  }
+  :root[data-tema="oscuro"]{
+    --bg:#0f141a; --card:#19212a; --th:#222c38;
+    --line:#37434f; --line2:#262f3a;
+    --txt:#e3eaf2; --muted:#93a2b3;
+    --accent:#7ab6f2; --accent2:#1b2a3a; --accentLine:#2d4560; --onAccent:#0d1620;
+    --ok:#6ad495; --okbg:#1a3326; --okTxt:#bfe8cd;
+    --err:#ff9f9f; --errbg:#3a2020; --errLine:#6b3434;
+    --hl:#3a3315;
+    --libre:#1f2730; --libreTxt:#93a2b3;
+    --cpu:#23402d; --io:#453518;
+    --sat:32%; --lum:27%; --blqTxt:#e3eaf2;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:24px 16px 80px; background:var(--bg); color:var(--txt);
+    font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px}
+  h2{font-size:16px;margin:0 0 14px;color:var(--accent);letter-spacing:.2px}
+  h3{font-size:14px;margin:0 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .sub{margin:0 0 18px;color:var(--muted);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:600}
+  select,input[type=number],input[type=text]{
+    font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;
+    background:var(--card);color:var(--txt);
+  }
+  select{min-width:215px}
+  button{
+    font:inherit;font-weight:600;padding:8px 15px;border:1px solid var(--line);border-radius:6px;
+    background:var(--card);color:var(--txt);cursor:pointer;
+  }
+  button:hover{background:var(--accent2);border-color:var(--accent)}
+  button.pri{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+  button.pri:hover{filter:brightness(1.12)}
+  button.mini{padding:3px 9px;font-size:13px}
+  button:disabled{opacity:.4;cursor:not-allowed}
+
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  #btnTema{flex:0 0 auto;font-size:13.5px;padding:7px 13px}
+  .nav{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
+  .nav a{
+    text-decoration:none;font-size:14px;font-weight:600;padding:7px 16px;border-radius:7px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);
+  }
+  .nav a:hover{border-color:var(--accent);color:var(--accent)}
+  .nav a.activo{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+
+  table.xl{border-collapse:collapse;font-size:14px;background:var(--card);width:100%}
+  table.xl th,table.xl td{border:1px solid var(--line);padding:5px 9px;text-align:center;white-space:nowrap}
+  table.xl th{background:var(--th);font-weight:600;font-size:13px}
+  tr.done{background:var(--okbg)}
+  tr.done td{color:var(--okTxt)}
+  .okmark{color:var(--ok);font-weight:700}
+  .vacia{color:var(--muted);font-size:13px;font-style:italic;padding:6px 2px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .grid > .card{min-width:0}
+  .tabla{overflow-x:auto}
+
+  .gantt{overflow-x:auto;padding-bottom:4px}
+  .gfila{display:flex}
+  .gcel{min-width:76px;flex:0 0 auto;border:1px solid var(--line);border-left:none;
+        padding:6px 4px;text-align:center;font-size:13px;font-weight:600;background:var(--cpu)}
+  .gfila .gcel:first-child{border-left:1px solid var(--line)}
+  .gcel.libre{background:var(--libre);color:var(--muted);font-weight:500}
+  .gio .gcel{background:var(--io)}
+  .gio .gcel.libre{background:var(--libre)}
+  .gnum{min-width:76px;flex:0 0 auto;padding:3px 4px;text-align:left;font-size:12px;color:var(--muted)}
+  .gtit{text-align:center;font-weight:700;font-size:14px;margin:0 0 6px}
+
+  .ram{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;align-items:flex-start}
+  .col{flex:0 0 auto;width:148px}
+  .colTit{text-align:center;font-size:13px;font-weight:700;color:var(--muted);padding-bottom:4px}
+  .comp{
+    text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.4px;
+    background:var(--accent2);color:var(--accent);border:1px solid var(--accentLine);
+    border-radius:5px;padding:1px 0;margin-bottom:3px;
+  }
+  .compVacio{height:18px;margin-bottom:3px}
+  .mem{display:flex;flex-direction:column;height:340px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .blq{
+    flex-basis:0;min-height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-size:12px;font-weight:600;text-align:center;padding:2px 4px;overflow:hidden;
+    border-bottom:1px solid var(--line);
+    background:hsl(var(--h,210) var(--sat) var(--lum));color:var(--blqTxt);line-height:1.25;
+  }
+  .blq:last-child{border-bottom:none}
+  .blq.libre{background:var(--libre);color:var(--libreTxt);font-weight:500}
+  .blq .est{font-size:10.5px;font-weight:600;opacity:.75;text-transform:uppercase;letter-spacing:.3px}
+
+  .critbox{background:var(--accent2);border:1px solid var(--accentLine);border-radius:8px;
+           padding:12px 14px;margin-bottom:10px;font-size:14px}
+  .critbox b{color:var(--accent)}
+  .crit{margin:0;padding-left:20px;font-size:14px}
+  .crit li{margin:2px 0}
+
+  .log{font-size:13.5px;max-height:320px;overflow:auto;margin:0;padding:0;list-style:none}
+  .log li{padding:4px 8px;border-bottom:1px solid var(--line2)}
+  .log li:last-child{border-bottom:none}
+  .log .sel{background:var(--hl)}
+
+  .err{background:var(--errbg);border:1px solid var(--errLine);color:var(--err);padding:10px 14px;
+       border-radius:8px;font-size:14px;margin-bottom:16px;white-space:pre-line}
+  .stepbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .tnow{font-size:19px;font-weight:700;color:var(--accent);min-width:92px}
+  .hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+  .tep{font-size:17px;font-weight:700;color:var(--accent);margin-top:10px}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <h1>Simulador Combinado: Procesos y Memoria</h1>
+      <p class="sub">Cola de Trabajo &rarr; <b>Memoria</b> &rarr; Listos &rarr; CPU &rarr; I/O &rarr; Terminados</p>
+    </div>
+    <button id="btnTema" type="button">Modo oscuro</button>
+  </div>
+
+  <nav class="nav">
+    <a href="planificacion-procesos.html">Procesos</a>
+    <a href="gestion-memoria.html">Memoria</a>
+    <a href="procesos-memoria.html" class="activo">Combinado</a>
+  </nav>
+
+  <!-- 1. CONFIGURACION -->
+  <div class="card">
+    <h2>1 &middot; Configuración</h2>
+    <div class="row">
+      <label class="f">Tipo de ejercicio
+        <select id="modo">
+          <option value="cpu">Solo CPU</option>
+          <option value="io">CPU &ndash; I/O &ndash; CPU</option>
+        </select>
+      </label>
+      <label class="f">Algoritmo de planificación
+        <select id="algo">
+          <option value="FCFS">FCFS</option>
+          <option value="SJF">SJF no apropiativo</option>
+          <option value="PRIO">Prioridad no apropiativa</option>
+          <option value="RR">Round Robin</option>
+          <option value="SRTF">SRTF (SJF apropiativo)</option>
+          <option value="PRIOAP">Prioridad apropiativa</option>
+        </select>
+      </label>
+      <label class="f" id="wrapQ" hidden>Quantum
+        <input id="quantum" type="number" min="1" step="1" placeholder="obligatorio" style="width:125px">
+      </label>
+      <label class="f">Memoria principal (K)
+        <input id="memoria" type="number" min="1" step="1" value="500" style="width:150px">
+      </label>
+    </div>
+    <p class="hint">
+      Un proceso solo pasa a la Cola de Listos <b>cuando logra entrar a memoria</b>. Mientras no haya espacio
+      se queda en la Cola de Trabajo. La memoria se libera <b>al terminar</b>, y se compacta apenas eso ocurre.
+      La prioridad se interpreta con menor número = mayor prioridad, y el tiempo siempre inicia en 0.
+    </p>
+  </div>
+
+  <!-- 2. COLA DE TRABAJO -->
+  <div class="card">
+    <h2>2 &middot; Cola de Trabajo</h2>
+    <div id="editor" class="tabla"></div>
+    <div class="row" style="margin-top:14px">
+      <button id="btnAdd">+ Agregar proceso</button>
+      <button id="btnEj">Cargar ejemplo</button>
+      <button id="btnAzar">Generar aleatorio</button>
+      <button id="btnClear">Vaciar</button>
+    </div>
+    <p class="hint" id="avisoAzar" hidden></p>
+  </div>
+
+  <!-- 3. REGLAS -->
+  <div class="card">
+    <h2>3 &middot; Reglas que se aplican</h2>
+    <div id="panelCrit"></div>
+  </div>
+
+  <div class="row" style="margin-bottom:16px">
+    <button id="btnSim" class="pri">Simular</button>
+  </div>
+
+  <div id="error" class="err" hidden></div>
+
+  <!-- RESULTADOS -->
+  <div id="resultados" hidden>
+
+    <div class="card stepbar">
+      <button id="bIni" class="mini">&#8676; Inicio</button>
+      <button id="bPrev" class="mini">&#9664; Anterior</button>
+      <span class="tnow" id="tNow">Tiempo = 0</span>
+      <button id="bNext" class="mini">Siguiente &#9654;</button>
+      <button id="bFin" class="mini">Final &#8677;</button>
+      <span style="flex:1"></span>
+      <span class="hint" id="pasoInfo"></span>
+    </div>
+
+    <div class="card">
+      <h2>RAM</h2>
+      <div class="ram" id="ram"></div>
+      <p class="hint">Cada columna es un instante. Dentro de cada bloque: el proceso, cuánta memoria ocupa y qué está haciendo en ese momento.</p>
+    </div>
+
+    <div class="card">
+      <h2>Diagramas</h2>
+      <div id="diagramas"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card"><h3>Cola de Trabajo</h3><div id="tTrabajo" class="tabla"></div></div>
+      <div class="card"><h3>Cola de Listos</h3><div id="tListos" class="tabla"></div></div>
+      <div class="card"><h3>Cola de Terminados</h3><div id="tFin" class="tabla"></div></div>
+      <div class="card" id="cardIO"><h3>Cola de I/O</h3><div id="tIO" class="tabla"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>Qué pasó en este paso</h2>
+      <ul class="log" id="eventos"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Tiempos de espera</h2>
+      <div id="tTP" class="tabla"></div>
+      <div class="tep" id="tepTxt"></div>
+      <p class="hint">El TP de cada proceso suma <b>todas</b> sus esperas: la de la Cola de Trabajo esperando memoria, las de la Cola de Listos esperando CPU y las de la Cola de I/O. TEP = promedio.</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ======================= CONFIGURACION DEL MODELO ======================= */
+
+const CRITERIOS = {
+  FCFS:   ['llegada','cpu','prioridad','orden'],
+  SJF:    ['cpu','llegada','prioridad','orden'],
+  PRIO:   ['prioridad','cpu','llegada','orden'],
+  RR:     ['llegada','cpu','prioridad','orden'],
+  SRTF:   ['cpu','llegada','prioridad','orden'],
+  PRIOAP: ['prioridad','cpu','llegada','orden'],
+  IO:     ['llegada','io','prioridad','orden']
+};
+
+const NOMBRE_ALGO = {
+  FCFS:'FCFS', SJF:'SJF no apropiativo', PRIO:'Prioridad no apropiativa',
+  RR:'Round Robin', SRTF:'SRTF (SJF apropiativo)', PRIOAP:'Prioridad apropiativa'
+};
+
+const NOMBRE_CRIT = {
+  llegada:'llegada', cpu:'menor CPU', io:'menor I/O',
+  prioridad:'prioridad (menor número)', orden:'primero en la cola'
+};
+
+const APROPIATIVOS = ['SRTF','PRIOAP'];
+const TONOS = [140, 205, 35, 275, 0, 95, 320, 180, 60, 250];
+
+/* ======================= ESTADO DE LA INTERFAZ ======================= */
+
+let modo = 'cpu';
+let algoritmo = 'FCFS';
+let filas = [];
+let snaps = [];
+let paso = 0;
+let nombresSim = [];
+
+const EJEMPLOS = {
+  cpu: { memoria:500, procs:[
+    {nombre:'P1', llegada:0, tamano:120, cpu1:3, io:1, cpu2:1, prioridad:2},
+    {nombre:'P2', llegada:0, tamano:200, cpu1:2, io:1, cpu2:1, prioridad:1},
+    {nombre:'P3', llegada:1, tamano:150, cpu1:4, io:1, cpu2:1, prioridad:3},
+    {nombre:'P4', llegada:2, tamano:250, cpu1:2, io:1, cpu2:1, prioridad:1}
+  ]},
+  io: { memoria:500, procs:[
+    {nombre:'P1', llegada:0, tamano:120, cpu1:2, io:2, cpu2:1, prioridad:2},
+    {nombre:'P2', llegada:0, tamano:200, cpu1:1, io:1, cpu2:2, prioridad:1},
+    {nombre:'P3', llegada:1, tamano:150, cpu1:2, io:1, cpu2:1, prioridad:3},
+    {nombre:'P4', llegada:2, tamano:250, cpu1:1, io:2, cpu2:1, prioridad:1}
+  ]}
+};
+
+/* ======================= MOTOR DE SIMULACION ======================= */
+
+function fmtEspera(t, llegada){
+  return { s: t + '-' + llegada + '=' + (t - llegada), n: t - llegada };
+}
+
+function valorCriterio(fila, c){
+  if(c === 'llegada')   return fila.llegada;
+  if(c === 'prioridad') return fila.prioridad;
+  if(c === 'cpu')       return fila.cpu;
+  if(c === 'io')        return fila.io;
+  return 0;
+}
+
+function seleccionar(candidatos, crits){
+  let cands = candidatos.slice();
+  if(cands.length === 1) return {row:cands[0], critIdx:-1};
+  for(let i = 0; i < crits.length; i++){
+    const c = crits[i];
+    if(c === 'orden') return {row:cands[0], critIdx:i};
+    let mejor = Infinity;
+    for(const e of cands) mejor = Math.min(mejor, valorCriterio(e, c));
+    const filtradas = cands.filter(e => valorCriterio(e, c) === mejor);
+    if(filtradas.length === 1) return {row:filtradas[0], critIdx:i};
+    cands = filtradas;
+  }
+  return {row:cands[0], critIdx:crits.length - 1};
+}
+
+function justificar(sel, crits, candidatos){
+  if(sel.critIdx === -1) return 'Era el único en la cola.';
+  return 'Desempate por criterio ' + (sel.critIdx + 1) + ' (' + NOMBRE_CRIT[crits[sel.critIdx]] +
+         '). Candidatos: ' + candidatos.map(c => c.nombre).join(', ') + '.';
+}
+
+function limpiarRef(r){ const o = Object.assign({}, r); delete o._p; return o; }
+
+function simular(){
+  const quantum    = parseInt(document.getElementById('quantum').value, 10);
+  const memoria    = parseInt(document.getElementById('memoria').value, 10);
+  const esRR       = (algoritmo === 'RR');
+  const apropiativo = APROPIATIVOS.indexOf(algoritmo) >= 0;
+  const conIO      = (modo === 'io');
+
+  nombresSim = filas.map(f => f.nombre);
+
+  const procs = filas.map((f, i) => ({
+    nombre: f.nombre, tamano:+f.tamano, prioridad:+f.prioridad,
+    rafagas: conIO ? [+f.cpu1, +f.io, +f.cpu2] : [+f.cpu1],
+    idx: 0, restante: +f.cpu1, tono: TONOS[i % TONOS.length]
+  }));
+
+  const logTrabajo = filas.map((f, i) => ({
+    ok:false, llegada:+f.llegada, nombre:f.nombre, tamano:+f.tamano, cpu1:+f.cpu1,
+    io: conIO ? +f.io : null, cpu2: conIO ? +f.cpu2 : null,
+    prioridad:+f.prioridad, espera:null, _p: procs[i]
+  }));
+
+  const logListos = [], logIO = [], terminados = [], gcpu = [], gio = [], ramCols = [];
+  let bloques = [{nombre:null, tam:memoria}];
+  let enCPU = null, enIO = null, qRest = 0, t = 0, marcarComp = false;
+
+  /* --- memoria --- */
+
+  function ubicar(p){
+    // En modo compactación siempre hay un único hueco, así que no hay nada que escoger.
+    const i = bloques.findIndex(b => b.nombre === null && b.tam >= p.tamano);
+    if(i < 0){
+      const mayor = bloques.reduce((a, b) => b.nombre === null ? Math.max(a, b.tam) : a, 0);
+      return {ok:false, motivo:'el hueco libre es de ' + mayor + 'K'};
+    }
+    const b = bloques[i];
+    const sobra = b.tam - p.tamano;
+    const nuevo = {nombre:p.nombre, tam:p.tamano};
+    if(sobra > 0) bloques.splice(i, 1, nuevo, {nombre:null, tam:sobra});
+    else bloques.splice(i, 1, nuevo);
+    return {ok:true, sobra:sobra};
+  }
+
+  function liberar(nombre){
+    for(const b of bloques) if(b.nombre === nombre) b.nombre = null;
+  }
+
+  function fusionar(){
+    const out = [];
+    for(const b of bloques){
+      const ult = out[out.length - 1];
+      if(b.nombre === null && ult && ult.nombre === null) ult.tam += b.tam;
+      else out.push(b);
+    }
+    bloques = out;
+  }
+
+  function compactar(){
+    const hayHueco = bloques.some((b, i) =>
+      b.nombre === null && bloques.slice(i + 1).some(x => x.nombre !== null));
+    if(!hayHueco) return false;
+    const ocupados = bloques.filter(b => b.nombre !== null);
+    const usado = ocupados.reduce((a, b) => a + b.tam, 0);
+    bloques = ocupados.slice();
+    if(memoria - usado > 0) bloques.push({nombre:null, tam:memoria - usado});
+    return true;
+  }
+
+  /* --- estado de cada proceso residente, para pintarlo en la RAM --- */
+
+  function estadoDe(nombre){
+    if(enCPU && enCPU.nombre === nombre) return 'en CPU';
+    if(enIO  && enIO.nombre  === nombre) return 'en E/S';
+    if(logIO.some(r => !r.ok && r.nombre === nombre))     return 'cola E/S';
+    if(logListos.some(r => !r.ok && r.nombre === nombre)) return 'listo';
+    return '';
+  }
+
+  function porNombre(nombre){ return procs.find(p => p.nombre === nombre); }
+
+  function fotoRam(t, comp){
+    return {t:t, comp:comp, blq: bloques.map(b => b.nombre === null
+      ? {txt:'LIBRE (' + b.tam + 'K)', est:'', tam:b.tam, libre:true}
+      : {txt:b.nombre + ' (' + b.tam + 'K)', est:estadoDe(b.nombre), tam:b.tam,
+         libre:false, tono:porNombre(b.nombre).tono})};
+  }
+
+  function foto(t, eventos){
+    return {
+      t:t,
+      trabajo: logTrabajo.map(limpiarRef),
+      listos:  logListos.map(limpiarRef),
+      io:      logIO.map(limpiarRef),
+      terminados: terminados.slice(),
+      ram: ramCols.map(c => ({t:c.t, comp:c.comp, blq:c.blq.map(b => Object.assign({}, b))})),
+      gcpu: gcpu.slice(), gio: gio.slice(),
+      eventos: eventos.slice()
+    };
+  }
+
+  /* --- ciclo principal --- */
+
+  snaps = [foto(0, ['Tiempo = 0. Memoria vacía y ninguna cola todavía.'])];
+
+  let guarda = 0;
+  while(terminados.length < procs.length && guarda++ < 5000){
+    const ev = [];
+
+    // 1. Cola de Trabajo -> memoria -> Cola de Listos.
+    //    El que no quepa se salta, y los de atrás sí pueden entrar.
+    for(const r of logTrabajo){
+      if(r.ok || r.llegada > t) continue;
+      const p = r._p;
+      const res = ubicar(p);
+      if(res.ok){
+        r.ok = true;
+        r.espera = fmtEspera(t, r.llegada);
+        logListos.push({ok:false, llegada:t, nombre:p.nombre, cpu:p.restante,
+                        prioridad:p.prioridad, espera:null, _p:p});
+        ev.push('t=' + t + ' · ' + p.nombre + ' (' + p.tamano + 'K) entra a memoria y pasa a la Cola de Listos. ' +
+                'Espera en Cola de Trabajo = ' + r.espera.s + '.' +
+                (res.sobra > 0 ? ' Quedan ' + res.sobra + 'K libres.' : ' La memoria queda llena.'));
+      }else{
+        ev.push('t=' + t + ' · ' + p.nombre + ' (' + p.tamano + 'K) no cabe en memoria: ' +
+                res.motivo + '. Se queda en la Cola de Trabajo.');
+      }
+    }
+
+    // 2. Asignar CPU.
+    if(!enCPU){
+      const disponibles = logListos.filter(x => !x.ok);
+      if(disponibles.length){
+        const sel = seleccionar(disponibles, CRITERIOS[algoritmo]);
+        sel.row.ok = true;
+        sel.row.espera = fmtEspera(t, sel.row.llegada);
+        enCPU = sel.row._p;
+        qRest = esRR ? quantum : Infinity;
+        ev.push('t=' + t + ' · CPU: entra ' + sel.row.nombre + ' (CPU ' + sel.row.cpu + '). ' +
+                justificar(sel, CRITERIOS[algoritmo], disponibles) + ' Espera = ' + sel.row.espera.s + '.');
+      }
+    }
+
+    // 3. Asignar I/O (siempre FCFS).
+    if(conIO && !enIO){
+      const disponibles = logIO.filter(x => !x.ok);
+      if(disponibles.length){
+        const sel = seleccionar(disponibles, CRITERIOS.IO);
+        sel.row.ok = true;
+        sel.row.espera = fmtEspera(t, sel.row.llegada);
+        enIO = sel.row._p;
+        ev.push('t=' + t + ' · I/O: entra ' + sel.row.nombre + ' (I/O ' + sel.row.io + '). ' +
+                justificar(sel, CRITERIOS.IO, disponibles) + ' Espera = ' + sel.row.espera.s + '.');
+      }
+    }
+
+    // 4. Retrato de la memoria en este instante.
+    ramCols.push(fotoRam(t, marcarComp));
+    marcarComp = false;
+
+    // 5 y 6. Ejecutar un ciclo de CPU y uno de I/O.
+    gcpu[t] = enCPU ? (enCPU.nombre + '(' + enCPU.restante + ')') : null;
+    if(enCPU){ enCPU.restante--; if(esRR) qRest--; }
+    if(conIO){
+      gio[t] = enIO ? (enIO.nombre + '(' + enIO.restante + ')') : null;
+      if(enIO) enIO.restante--;
+    }
+
+    // 7. Avanzar el reloj.
+    t++;
+
+    // 8. ¿Sale el proceso de la CPU?
+    let libero = false;
+    if(enCPU){
+      const p = enCPU;
+      if(p.restante === 0){
+        p.idx++;
+        if(p.idx >= p.rafagas.length){
+          terminados.push({t:t, nombre:p.nombre});
+          liberar(p.nombre);
+          libero = true;
+          ev.push('t=' + t + ' · ' + p.nombre + ' termina, pasa a Terminados y libera sus ' + p.tamano + 'K.');
+        }else{
+          p.restante = p.rafagas[p.idx];
+          logIO.push({ok:false, llegada:t, nombre:p.nombre, io:p.restante,
+                      prioridad:p.prioridad, espera:null, _p:p});
+          ev.push('t=' + t + ' · ' + p.nombre + ' termina su ráfaga de CPU y pasa a la Cola de I/O. ' +
+                  'Sigue ocupando sus ' + p.tamano + 'K.');
+        }
+        enCPU = null;
+      }else if(apropiativo || (esRR && qRest === 0)){
+        logListos.push({ok:false, llegada:t, nombre:p.nombre, cpu:p.restante,
+                        prioridad:p.prioridad, espera:null, _p:p});
+        ev.push('t=' + t + ' · ' + p.nombre + ' sale de la CPU ' +
+                (esRR ? 'por fin de quantum' : 'tras ejecutar un ciclo') +
+                ' y vuelve a la Cola de Listos con CPU ' + p.restante + '.');
+        enCPU = null;
+      }
+    }
+
+    // 9. ¿Sale el proceso de la I/O?
+    if(conIO && enIO && enIO.restante === 0){
+      const p = enIO;
+      p.idx++;
+      p.restante = p.rafagas[p.idx];
+      logListos.push({ok:false, llegada:t, nombre:p.nombre, cpu:p.restante,
+                      prioridad:p.prioridad, espera:null, _p:p});
+      ev.push('t=' + t + ' · ' + p.nombre + ' termina su I/O y vuelve a la Cola de Listos.');
+      enIO = null;
+    }
+
+    // 10. Si se liberó memoria, se fusiona y se compacta de una.
+    if(libero){
+      fusionar();
+      if(compactar()){
+        marcarComp = true;
+        ev.push('t=' + t + ' · COMPACTACIÓN: los procesos que quedan en memoria se corren hacia arriba.');
+      }
+    }
+
+    snaps.push(foto(t, ev));
+  }
+
+  return guarda < 5000;
+}
+
+/* ======================= VALIDACION ======================= */
+
+function esEnteroDesde(v, min){
+  if(v === '' || v === null || v === undefined) return false;
+  const n = Number(v);
+  return Number.isInteger(n) && n >= min;
+}
+
+function validar(){
+  const e = [];
+  const memoria = document.getElementById('memoria').value;
+  if(!esEnteroDesde(memoria, 1)) e.push('La memoria principal debe ser un entero mayor o igual a 1.');
+  if(filas.length === 0) e.push('Agrega al menos un proceso a la Cola de Trabajo.');
+
+  const vistos = {};
+  filas.forEach((f, i) => {
+    const et = 'Fila ' + (i + 1) + ': ';
+    const nom = (f.nombre || '').trim();
+    if(!nom) e.push(et + 'falta el nombre del proceso.');
+    else if(vistos[nom]) e.push(et + 'el nombre "' + nom + '" está repetido.');
+    else vistos[nom] = true;
+
+    if(!esEnteroDesde(f.llegada, 0))   e.push(et + 'la llegada debe ser un entero mayor o igual a 0.');
+    if(!esEnteroDesde(f.cpu1, 1))      e.push(et + 'la ráfaga de CPU debe ser un entero mayor o igual a 1.');
+    if(!esEnteroDesde(f.prioridad, 0)) e.push(et + 'la prioridad debe ser un entero mayor o igual a 0.');
+    if(!esEnteroDesde(f.tamano, 1))    e.push(et + 'el tamaño debe ser un entero mayor o igual a 1.');
+    else if(esEnteroDesde(memoria, 1) && (+f.tamano) > (+memoria))
+      e.push(et + (nom || 'el proceso') + ' pide ' + f.tamano + 'K y la memoria es de ' + memoria +
+             'K. Nunca podría entrar.');
+    if(modo === 'io'){
+      if(!esEnteroDesde(f.io, 1))   e.push(et + 'la ráfaga de I/O debe ser un entero mayor o igual a 1.');
+      if(!esEnteroDesde(f.cpu2, 1)) e.push(et + 'la segunda ráfaga de CPU debe ser un entero mayor o igual a 1.');
+    }
+  });
+
+  if(algoritmo === 'RR' && !esEnteroDesde(document.getElementById('quantum').value, 1))
+    e.push('Round Robin necesita un quantum: escribe un entero mayor o igual a 1.');
+  return e;
+}
+
+/* ======================= EDITOR DE LA COLA DE TRABAJO ======================= */
+
+function nuevoNombre(){
+  let i = 1;
+  const usados = {};
+  filas.forEach(f => usados[(f.nombre || '').trim()] = true);
+  while(usados['P' + i]) i++;
+  return 'P' + i;
+}
+
+function cel(i, k, v, min){
+  return '<td><input type="number" min="' + min + '" step="1" data-i="' + i +
+         '" data-k="' + k + '" value="' + (v === undefined ? '' : v) +
+         '" style="width:76px;text-align:center"></td>';
+}
+
+function pintarEditor(){
+  const conIO = (modo === 'io');
+  let h = '<table class="xl"><thead><tr><th>Llegada</th><th>Proceso</th><th>Tamaño (K)</th>' +
+          (conIO ? '<th>CPU</th><th>I/O</th><th>CPU</th>' : '<th>CPU</th>') +
+          '<th>Prioridad</th><th></th></tr></thead><tbody>';
+
+  if(filas.length === 0)
+    h += '<tr><td colspan="' + (conIO ? 8 : 6) + '"><span class="vacia">Sin procesos. Usa "Agregar proceso" o carga un ejemplo.</span></td></tr>';
+
+  filas.forEach((f, i) => {
+    h += '<tr>' +
+      cel(i, 'llegada', f.llegada, 0) +
+      '<td><input type="text" data-i="' + i + '" data-k="nombre" value="' + (f.nombre || '') +
+        '" style="width:70px;text-align:center"></td>' +
+      cel(i, 'tamano', f.tamano, 1) +
+      cel(i, 'cpu1', f.cpu1, 1) +
+      (conIO ? cel(i, 'io', f.io, 1) + cel(i, 'cpu2', f.cpu2, 1) : '') +
+      cel(i, 'prioridad', f.prioridad, 0) +
+      '<td><button class="mini" data-del="' + i + '">&times;</button></td>' +
+    '</tr>';
+  });
+  h += '</tbody></table>';
+
+  const cont = document.getElementById('editor');
+  cont.innerHTML = h;
+  cont.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', ev => {
+      const el = ev.target;
+      filas[+el.dataset.i][el.dataset.k] = el.value;
+    });
+  });
+  cont.querySelectorAll('button[data-del]').forEach(b => {
+    b.addEventListener('click', ev => { filas.splice(+ev.target.dataset.del, 1); pintarEditor(); });
+  });
+}
+
+function pintarCriterios(){
+  let h = '<div class="critbox"><b>Entrada a memoria</b> &mdash; se recorre la Cola de Trabajo en orden. ' +
+          'El que quepa entra y pasa de una a la Cola de Listos; <b>el que no quepa se salta</b> y lo intenta ' +
+          'el siguiente. La memoria se libera solo cuando el proceso termina, y ahí mismo se compacta. ' +
+          'Como siempre queda un único hueco libre, <b>el algoritmo de ajuste no aplica</b>.</div>';
+
+  h += '<div class="critbox"><b>' + NOMBRE_ALGO[algoritmo] + '</b> &mdash; orden de criterios al elegir de la Cola de Listos:<ol class="crit">';
+  CRITERIOS[algoritmo].forEach(c => h += '<li>' + NOMBRE_CRIT[c] + '</li>');
+  h += '</ol></div>';
+
+  if(modo === 'io'){
+    h += '<div class="critbox"><b>Cola de I/O</b> &mdash; siempre FCFS:<ol class="crit">';
+    CRITERIOS.IO.forEach(c => h += '<li>' + NOMBRE_CRIT[c] + '</li>');
+    h += '</ol></div>';
+  }
+  document.getElementById('panelCrit').innerHTML = h;
+}
+
+/* ======================= RENDER DE RESULTADOS ======================= */
+
+function marcaOK(r){ return r.ok ? '<span class="okmark">OK</span>' : ''; }
+
+function tablaTrabajo(s){
+  const conIO = (modo === 'io');
+  let h = '<table class="xl"><thead><tr><th>OK</th><th>Llegada</th><th>Proceso</th><th>Tamaño</th>' +
+          (conIO ? '<th>CPU</th><th>I/O</th><th>CPU</th>' : '<th>CPU</th>') +
+          '<th>Prioridad</th><th>Espera</th></tr></thead><tbody>';
+  for(const r of s.trabajo){
+    h += '<tr class="' + (r.ok ? 'done' : '') + '"><td>' + marcaOK(r) + '</td><td>' + r.llegada +
+         '</td><td>' + r.nombre + '</td><td>' + r.tamano + '</td><td>' + r.cpu1 + '</td>' +
+         (conIO ? '<td>' + r.io + '</td><td>' + r.cpu2 + '</td>' : '') +
+         '<td>' + r.prioridad + '</td><td>' + (r.espera ? r.espera.s : '') + '</td></tr>';
+  }
+  return h + '</tbody></table>';
+}
+
+function tablaListos(s){
+  let h = '<table class="xl"><thead><tr><th>OK</th><th>Llegada</th><th>Proceso</th>' +
+          '<th>CPU</th><th>Prioridad</th><th>Espera</th></tr></thead><tbody>';
+  if(s.listos.length === 0) h += '<tr><td colspan="6"><span class="vacia">Vacía</span></td></tr>';
+  for(const r of s.listos){
+    h += '<tr class="' + (r.ok ? 'done' : '') + '"><td>' + marcaOK(r) + '</td><td>' + r.llegada +
+         '</td><td>' + r.nombre + '</td><td>' + r.cpu + '</td><td>' + r.prioridad +
+         '</td><td>' + (r.espera ? r.espera.s : '') + '</td></tr>';
+  }
+  return h + '</tbody></table>';
+}
+
+function tablaIO(s){
+  let h = '<table class="xl"><thead><tr><th>OK</th><th>Llegada</th><th>Proceso</th>' +
+          '<th>I/O</th><th>Espera</th></tr></thead><tbody>';
+  if(s.io.length === 0) h += '<tr><td colspan="5"><span class="vacia">Vacía</span></td></tr>';
+  for(const r of s.io){
+    h += '<tr class="' + (r.ok ? 'done' : '') + '"><td>' + marcaOK(r) + '</td><td>' + r.llegada +
+         '</td><td>' + r.nombre + '</td><td>' + r.io + '</td><td>' +
+         (r.espera ? r.espera.s : '') + '</td></tr>';
+  }
+  return h + '</tbody></table>';
+}
+
+function tablaFin(s){
+  let h = '<table class="xl"><thead><tr><th>Llegada</th><th>Proceso</th></tr></thead><tbody>';
+  if(s.terminados.length === 0) h += '<tr><td colspan="2"><span class="vacia">Vacía</span></td></tr>';
+  for(const r of s.terminados) h += '<tr class="done"><td>' + r.t + '</td><td>' + r.nombre + '</td></tr>';
+  return h + '</tbody></table>';
+}
+
+function dibujarRam(s){
+  if(s.ram.length === 0) return '<span class="vacia">Todavía no hay nada que mostrar.</span>';
+  let h = '';
+  for(const c of s.ram){
+    h += '<div class="col">' +
+         (c.comp ? '<div class="comp">COMPACTACIÓN</div>' : '<div class="compVacio"></div>') +
+         '<div class="mem">';
+    for(const b of c.blq){
+      h += '<div class="blq' + (b.libre ? ' libre' : '') + '" style="flex-grow:' + b.tam +
+           (b.libre ? '' : ';--h:' + b.tono) + '">' + b.txt +
+           (b.est ? '<span class="est">' + b.est + '</span>' : '') + '</div>';
+    }
+    h += '</div><div class="colTit">' + c.t + '</div></div>';
+  }
+  return h;
+}
+
+function diagrama(titulo, celdas, claseExtra){
+  let fila = '', nums = '';
+  const n = Math.max(celdas.length, 1);
+  for(let i = 0; i < n; i++){
+    const v = celdas[i];
+    fila += '<div class="gcel' + (v ? '' : ' libre') + '">' + (v ? v : 'LIBRE') + '</div>';
+    nums += '<div class="gnum">' + i + '</div>';
+  }
+  return '<div class="gantt ' + claseExtra + '"><p class="gtit">' + titulo + '</p>' +
+         '<div class="gfila">' + fila + '</div><div class="gfila">' + nums + '</div></div>';
+}
+
+function tablaTP(s){
+  const nombres = nombresSim;
+  const tp = {};
+  nombres.forEach(n => tp[n] = 0);
+  const suma = r => { if(r.espera && tp[r.nombre] !== undefined) tp[r.nombre] += r.espera.n; };
+  s.trabajo.forEach(suma);
+  s.listos.forEach(suma);
+  s.io.forEach(suma);
+
+  let h = '<table class="xl" style="max-width:640px"><thead><tr><th>Proceso</th>';
+  nombres.forEach(n => h += '<th>TP_' + n + '</th>');
+  h += '</tr></thead><tbody><tr><td><b>Espera total</b></td>';
+  nombres.forEach(n => h += '<td>' + tp[n] + '</td>');
+  h += '</tr></tbody></table>';
+
+  const total = nombres.reduce((a, n) => a + tp[n], 0);
+  const prom = nombres.length ? total / nombres.length : 0;
+  document.getElementById('tepTxt').innerHTML =
+    'TEP = (' + nombres.map(n => tp[n]).join(' + ') + ') / ' + nombres.length +
+    ' = ' + (Math.round(prom * 1e6) / 1e6);
+  return h;
+}
+
+function render(){
+  const s = snaps[paso];
+  document.getElementById('tNow').textContent = 'Tiempo = ' + s.t;
+  document.getElementById('pasoInfo').textContent =
+    'Paso ' + paso + ' de ' + (snaps.length - 1) + (paso === snaps.length - 1 ? ' · resultado final' : '');
+
+  document.getElementById('bIni').disabled  = (paso === 0);
+  document.getElementById('bPrev').disabled = (paso === 0);
+  document.getElementById('bNext').disabled = (paso === snaps.length - 1);
+  document.getElementById('bFin').disabled  = (paso === snaps.length - 1);
+
+  document.getElementById('ram').innerHTML = dibujarRam(s);
+
+  let d = diagrama('CPU (' + NOMBRE_ALGO[algoritmo] + ')', s.gcpu, '');
+  if(modo === 'io') d += '<div style="height:18px"></div>' + diagrama('I/O', s.gio, 'gio');
+  document.getElementById('diagramas').innerHTML = d;
+
+  document.getElementById('tTrabajo').innerHTML = tablaTrabajo(s);
+  document.getElementById('tListos').innerHTML  = tablaListos(s);
+  document.getElementById('tIO').innerHTML      = tablaIO(s);
+  document.getElementById('tFin').innerHTML     = tablaFin(s);
+  document.getElementById('cardIO').hidden      = (modo !== 'io');
+  document.getElementById('tTP').innerHTML      = tablaTP(s);
+
+  const ul = document.getElementById('eventos');
+  ul.innerHTML = s.eventos.length
+    ? s.eventos.map(e => '<li class="' + (e.indexOf('entra') >= 0 ? 'sel' : '') + '">' + e + '</li>').join('')
+    : '<li><span class="vacia">En este paso no hubo cambios.</span></li>';
+}
+
+/* ======================= EVENTOS DE LA INTERFAZ ======================= */
+
+function mostrarErrores(lista){
+  const box = document.getElementById('error');
+  if(lista.length === 0){ box.hidden = true; return; }
+  box.hidden = false;
+  box.textContent = lista.join('\n');
+}
+
+function cargarDatos(d){
+  document.getElementById('memoria').value = d.memoria;
+  filas = d.procs.map(p => Object.assign({}, p));
+  pintarEditor();
+  document.getElementById('avisoAzar').hidden = true;
+  document.getElementById('resultados').hidden = true;
+}
+
+document.getElementById('modo').addEventListener('change', e => {
+  modo = e.target.value;
+  if(modo === 'io'){
+    filas.forEach(f => {
+      if(f.io === undefined || f.io === '')     f.io = 1;
+      if(f.cpu2 === undefined || f.cpu2 === '') f.cpu2 = 1;
+    });
+  }
+  pintarEditor();
+  pintarCriterios();
+  document.getElementById('resultados').hidden = true;
+});
+
+document.getElementById('algo').addEventListener('change', e => {
+  algoritmo = e.target.value;
+  document.getElementById('wrapQ').hidden = (algoritmo !== 'RR');
+  pintarCriterios();
+  document.getElementById('resultados').hidden = true;
+});
+
+document.getElementById('memoria').addEventListener('input', () => {
+  document.getElementById('resultados').hidden = true;
+});
+
+document.getElementById('btnAdd').addEventListener('click', () => {
+  const ult = filas[filas.length - 1];
+  filas.push({nombre:nuevoNombre(), llegada: ult ? (+ult.llegada || 0) : 0,
+              tamano:100, cpu1:2, io:1, cpu2:1, prioridad:1});
+  pintarEditor();
+});
+
+document.getElementById('btnEj').addEventListener('click', () => cargarDatos(EJEMPLOS[modo]));
+
+document.getElementById('btnClear').addEventListener('click', () => {
+  filas = [];
+  pintarEditor();
+  document.getElementById('avisoAzar').hidden = true;
+  document.getElementById('resultados').hidden = true;
+});
+
+/* --- Generador de ejercicios al azar ---
+   Los tamaños se escogen para que entre todos pidan bastante más memoria de la que
+   hay, que es lo que hace interesante el ejercicio: alguien tiene que esperar afuera. */
+
+function azar(min, max){ return min + Math.floor(Math.random() * (max - min + 1)); }
+function azarPaso(min, max, paso){ return azar(Math.ceil(min / paso), Math.floor(max / paso)) * paso; }
+
+function candidatoAzar(){
+  const conIO = (modo === 'io');
+  const memoria = azar(4, 6) * 100;
+  const n = conIO ? azar(3, 4) : azar(4, 5);
+  const procs = [];
+  let llegada = 0;
+  for(let i = 0; i < n; i++){
+    procs.push({
+      nombre:'P' + (i + 1),
+      llegada: llegada,
+      tamano: azarPaso(Math.round(memoria * 0.15), Math.round(memoria * 0.55), 10),
+      cpu1: conIO ? azar(1, 3) : azar(2, 4),
+      io:   conIO ? azar(1, 3) : 1,
+      cpu2: conIO ? azar(1, 3) : 1,
+      prioridad: azar(1, n)
+    });
+    llegada += azar(0, 2);
+  }
+  return {memoria:memoria, procs:procs};
+}
+
+document.getElementById('btnAzar').addEventListener('click', () => {
+  let mejor = null;
+
+  // Se generan varios y se escoge el que más jugo tenga: que alguien espere por
+  // memoria y que en algún momento haya que compactar.
+  for(let intento = 0; intento < 40; intento++){
+    const cand = candidatoAzar();
+    document.getElementById('memoria').value = cand.memoria;
+    filas = cand.procs.map(p => Object.assign({}, p));
+    if(validar().length) continue;
+    simular();
+
+    const s = snaps[snaps.length - 1];
+    const esperaMem = s.trabajo.reduce((a, r) => a + (r.espera ? r.espera.n : 0), 0);
+    const compacto  = s.ram.some(c => c.comp);
+    const valor = esperaMem + (compacto ? 4 : 0);
+    if(!mejor || valor > mejor.valor) mejor = {cand:cand, valor:valor, esperaMem:esperaMem, compacto:compacto};
+    if(esperaMem >= 2 && compacto) break;
+  }
+
+  document.getElementById('memoria').value = mejor.cand.memoria;
+  filas = mejor.cand.procs.map(p => Object.assign({}, p));
+
+  const piden = mejor.cand.procs.reduce((a, p) => a + p.tamano, 0);
+  const aviso = document.getElementById('avisoAzar');
+  aviso.hidden = false;
+  aviso.textContent = 'Ejercicio al azar: ' + mejor.cand.procs.length + ' procesos sobre ' +
+    mejor.cand.memoria + 'K. Entre todos piden ' + piden + 'K' +
+    (mejor.esperaMem > 0 ? ', así que a alguno le toca esperar afuera' : '') +
+    (mejor.compacto ? ' y en algún momento hay que compactar' : '') + '.';
+
+  pintarEditor();
+  document.getElementById('resultados').hidden = true;
+});
+
+document.getElementById('btnSim').addEventListener('click', () => {
+  const errs = validar();
+  mostrarErrores(errs);
+  if(errs.length){ document.getElementById('resultados').hidden = true; return; }
+
+  filas.forEach(f => f.nombre = f.nombre.trim());
+  if(!simular()){
+    mostrarErrores(['La simulación no terminó: revisa los datos (se detuvo tras 5000 instantes).']);
+    document.getElementById('resultados').hidden = true;
+    return;
+  }
+  paso = snaps.length - 1;
+  document.getElementById('resultados').hidden = false;
+  render();
+});
+
+document.getElementById('bIni').addEventListener('click',  () => { paso = 0; render(); });
+document.getElementById('bPrev').addEventListener('click', () => { if(paso > 0){ paso--; render(); } });
+document.getElementById('bNext').addEventListener('click', () => { if(paso < snaps.length - 1){ paso++; render(); } });
+document.getElementById('bFin').addEventListener('click',  () => { paso = snaps.length - 1; render(); });
+
+document.addEventListener('keydown', e => {
+  if(document.getElementById('resultados').hidden) return;
+  if(['INPUT','SELECT','TEXTAREA'].indexOf(e.target.tagName) >= 0) return;
+  if(e.key === 'ArrowRight' && paso < snaps.length - 1){ paso++; render(); }
+  if(e.key === 'ArrowLeft'  && paso > 0){ paso--; render(); }
+});
+
+/* ======================= MODO CLARO / OSCURO ======================= */
+
+function aplicarTema(t){
+  document.documentElement.setAttribute('data-tema', t);
+  document.getElementById('btnTema').textContent = (t === 'oscuro') ? 'Modo claro' : 'Modo oscuro';
+  try{ localStorage.setItem('tema', t); }catch(e){ /* file:// puede bloquearlo */ }
+}
+
+function temaGuardado(){
+  let t = null;
+  try{ t = localStorage.getItem('tema'); }catch(e){}
+  if(t === 'claro' || t === 'oscuro') return t;
+  const oscuroSistema = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  return oscuroSistema ? 'oscuro' : 'claro';
+}
+
+document.getElementById('btnTema').addEventListener('click', () => {
+  const actual = document.documentElement.getAttribute('data-tema');
+  aplicarTema(actual === 'oscuro' ? 'claro' : 'oscuro');
+});
+
+/* ======================= ARRANQUE ======================= */
+
+aplicarTema(temaGuardado());
+cargarDatos(EJEMPLOS.cpu);
+pintarCriterios();
+</script>
+</body>
+</html>

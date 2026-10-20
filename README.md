@@ -1,10 +1,10 @@
 # Simuladores de Sistemas Operativos
 
-Dos herramientas para resolver y verificar los ejercicios de clase. Cada una es un solo archivo HTML: funcionan en el navegador, sin instalar nada y sin conexión.
+Tres herramientas para resolver y verificar los ejercicios de clase. Cada una es un solo archivo HTML: funcionan en el navegador, sin instalar nada y sin conexión.
 
-### 👉 [Planificación de procesos](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/planificacion-procesos.html) &nbsp;·&nbsp; [Gestión de memoria](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/gestion-memoria.html)
+### 👉 [Planificación de procesos](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/planificacion-procesos.html) &nbsp;·&nbsp; [Gestión de memoria](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/gestion-memoria.html) &nbsp;·&nbsp; [Combinado](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/procesos-memoria.html)
 
-También se pueden descargar ([`planificacion-procesos.html`](planificacion-procesos.html), [`gestion-memoria.html`](gestion-memoria.html)) y abrir con doble clic.
+También se pueden descargar ([`planificacion-procesos.html`](planificacion-procesos.html), [`gestion-memoria.html`](gestion-memoria.html), [`procesos-memoria.html`](procesos-memoria.html)) y abrir con doble clic.
 
 Las dos comparten la misma lógica: una **cola de trabajo** que se llena a mano, la marca **OK** sobre cada fila ya atendida, la **espera** calculada como `tiempo actual − llegada`, un **recorrido paso a paso** por cada unidad de tiempo, y **modo claro y oscuro**.
 
@@ -77,6 +77,27 @@ En **particiones variables** la memoria es un solo bloque que se va partiendo se
 
 ---
 
+---
+
+## Combinado: procesos y memoria
+
+Une las dos anteriores. Aquí la memoria es el **filtro de entrada**: un proceso llega a la Cola de Trabajo, tiene que conseguir espacio en RAM, y **solo cuando logra entrar a memoria** pasa a la Cola de Listos y empieza a competir por la CPU. Mientras no haya espacio se queda afuera esperando.
+
+La Cola de Trabajo gana una columna de **Tamaño (K)**, y desaparece la de *tiempo en el sistema*: lo que el proceso dura en memoria ya no es un dato, sale de sus ráfagas.
+
+Funciona con los dos tipos de ejercicio (solo CPU y CPU – I/O – CPU) y con los seis algoritmos de planificación.
+
+### Reglas propias
+
+1. Se recorre la Cola de Trabajo en orden. El que quepa entra a memoria y pasa **en el mismo instante** a la Cola de Listos; **el que no quepa se salta** y lo intenta el siguiente.
+2. El proceso **conserva su memoria** mientras esté listo, en CPU o bloqueado en E/S.
+3. La memoria se libera **solo al terminar**, y ahí mismo se compacta.
+4. La espera de un proceso suma **las tres**: la de la Cola de Trabajo esperando memoria, las de la Cola de Listos esperando CPU y las de la Cola de I/O.
+
+Como se compacta apenas alguien termina, **siempre queda un único hueco libre**. Por eso aquí el algoritmo de ajuste no aplica: nunca hay dónde escoger.
+
+---
+
 ## Estado
 
-Las dos están verificadas contra los ejercicios resueltos en clase: reproducen las colas, los diagramas y los tiempos celda por celda.
+Las tres están verificadas: las dos primeras contra los ejercicios resueltos en clase, celda por celda. La combinada se comprobó con 480 simulaciones sobre los seis algoritmos y los dos tipos de ejercicio, verificando que la RAM siempre sume el total y que nunca aparezca más de un hueco libre.
