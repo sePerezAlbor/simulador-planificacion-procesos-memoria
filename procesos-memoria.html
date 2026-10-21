@@ -190,6 +190,7 @@
     <div class="row" style="margin-top:14px">
       <button id="btnAdd">+ Agregar proceso</button>
       <button id="btnEj">Cargar ejemplo</button>
+      <select id="selEjer" style="min-width:290px"></select>
       <button id="btnAzar">Generar aleatorio</button>
       <button id="btnClear">Vaciar</button>
     </div>
@@ -305,6 +306,44 @@ const EJEMPLOS = {
     {nombre:'P4', llegada:2, tamano:250, cpu1:1, io:2, cpu2:1, prioridad:1}
   ]}
 };
+
+/* --- Serie de práctica. Varios ejercicios comparten los datos a propósito:
+       cambia solo el algoritmo, para ver qué tanto afecta a la memoria. --- */
+
+const DATOS_A = [
+  {nombre:'P1', llegada:0, tamano:150, cpu1:3, io:1, cpu2:1, prioridad:3},
+  {nombre:'P2', llegada:0, tamano:180, cpu1:2, io:1, cpu2:1, prioridad:1},
+  {nombre:'P3', llegada:1, tamano:120, cpu1:2, io:1, cpu2:1, prioridad:2},
+  {nombre:'P4', llegada:2, tamano:200, cpu1:3, io:1, cpu2:1, prioridad:1}
+];
+const DATOS_B = [
+  {nombre:'P1', llegada:0, tamano:150, cpu1:2, io:1, cpu2:1, prioridad:2},
+  {nombre:'P2', llegada:0, tamano:200, cpu1:5, io:1, cpu2:1, prioridad:1},
+  {nombre:'P3', llegada:1, tamano:180, cpu1:3, io:1, cpu2:1, prioridad:3},
+  {nombre:'P4', llegada:2, tamano:120, cpu1:1, io:1, cpu2:1, prioridad:1},
+  {nombre:'P5', llegada:3, tamano:160, cpu1:2, io:1, cpu2:1, prioridad:2}
+];
+const DATOS_C = [
+  {nombre:'P1', llegada:0, tamano:150, cpu1:3, io:2, cpu2:1, prioridad:2},
+  {nombre:'P2', llegada:0, tamano:200, cpu1:3, io:1, cpu2:1, prioridad:1},
+  {nombre:'P3', llegada:1, tamano:140, cpu1:3, io:1, cpu2:1, prioridad:3},
+  {nombre:'P4', llegada:2, tamano:170, cpu1:3, io:1, cpu2:1, prioridad:1}
+];
+const DATOS_D = [
+  {nombre:'P1', llegada:0, tamano:180, cpu1:2, io:1, cpu2:2, prioridad:3},
+  {nombre:'P2', llegada:0, tamano:150, cpu1:1, io:2, cpu2:1, prioridad:1},
+  {nombre:'P3', llegada:1, tamano:200, cpu1:2, io:1, cpu2:1, prioridad:2},
+  {nombre:'P4', llegada:3, tamano:120, cpu1:1, io:1, cpu2:2, prioridad:1}
+];
+
+const EJERCICIOS = [
+  {rot:'Ej 1 · Solo CPU · FCFS',                   modo:'cpu', algo:'FCFS',   q:null, memoria:400, procs:DATOS_A},
+  {rot:'Ej 2 · Solo CPU · SJF (mismos datos)',     modo:'cpu', algo:'SJF',    q:null, memoria:400, procs:DATOS_A},
+  {rot:'Ej 3 · Solo CPU · SRTF',                   modo:'cpu', algo:'SRTF',   q:null, memoria:500, procs:DATOS_B},
+  {rot:'Ej 4 · CPU–I/O–CPU · FCFS',                modo:'io',  algo:'FCFS',   q:null, memoria:480, procs:DATOS_C},
+  {rot:'Ej 5 · CPU–I/O–CPU · RR q=2 (mismos)',     modo:'io',  algo:'RR',     q:2,    memoria:480, procs:DATOS_C},
+  {rot:'Ej 6 · CPU–I/O–CPU · Prioridad apropiativa', modo:'io', algo:'PRIOAP', q:null, memoria:500, procs:DATOS_D}
+];
 
 /* ======================= MOTOR DE SIMULACION ======================= */
 
@@ -856,11 +895,48 @@ document.getElementById('btnAdd').addEventListener('click', () => {
   pintarEditor();
 });
 
-document.getElementById('btnEj').addEventListener('click', () => cargarDatos(EJEMPLOS[modo]));
+document.getElementById('btnEj').addEventListener('click', () => {
+  cargarDatos(EJEMPLOS[modo]);
+  document.getElementById('selEjer').value = '';
+});
+
+/* --- Selector de la serie de práctica: deja todo listo de una, sin tener
+       que escribir los datos ni acordarse del algoritmo y el quantum. --- */
+(function(){
+  const sel = document.getElementById('selEjer');
+  let h = '<option value="">Cargar ejercicio de la serie&hellip;</option>';
+  EJERCICIOS.forEach((e, i) => h += '<option value="' + i + '">' + e.rot + '</option>');
+  sel.innerHTML = h;
+
+  sel.addEventListener('change', ev => {
+    const i = ev.target.value;
+    if(i === '') return;
+    const e = EJERCICIOS[+i];
+
+    modo = e.modo;
+    document.getElementById('modo').value = e.modo;
+    algoritmo = e.algo;
+    document.getElementById('algo').value = e.algo;
+    document.getElementById('wrapQ').hidden = (e.algo !== 'RR');
+    if(e.q !== null) document.getElementById('quantum').value = e.q;
+    document.getElementById('memoria').value = e.memoria;
+    filas = e.procs.map(p => Object.assign({}, p));
+
+    const aviso = document.getElementById('avisoAzar');
+    aviso.hidden = false;
+    aviso.textContent = e.rot + ' — ' + e.procs.length + ' procesos sobre ' + e.memoria + 'K.' +
+      (e.q !== null ? ' Quantum ' + e.q + '.' : '') + ' Todo queda configurado, solo dale a Simular cuando ya lo hayas hecho a mano.';
+
+    pintarEditor();
+    pintarCriterios();
+    document.getElementById('resultados').hidden = true;
+  });
+})();
 
 document.getElementById('btnClear').addEventListener('click', () => {
   filas = [];
   pintarEditor();
+  document.getElementById('selEjer').value = '';
   document.getElementById('avisoAzar').hidden = true;
   document.getElementById('resultados').hidden = true;
 });
@@ -925,6 +1001,7 @@ document.getElementById('btnAzar').addEventListener('click', () => {
     (mejor.compacto ? ' y en algún momento hay que compactar' : '') + '.';
 
   pintarEditor();
+  document.getElementById('selEjer').value = '';
   document.getElementById('resultados').hidden = true;
 });
 
