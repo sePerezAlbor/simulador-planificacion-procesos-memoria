@@ -1,10 +1,11 @@
 # Simuladores de Sistemas Operativos
 
-Tres herramientas para resolver y verificar los ejercicios de clase. Cada una es un solo archivo HTML: funcionan en el navegador, sin instalar nada y sin conexión.
+Cinco herramientas para resolver y verificar los ejercicios de clase. Cada una es un solo archivo HTML: funcionan en el navegador, sin instalar nada y sin conexión.
 
 ### 👉 [Planificación de procesos](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/planificacion-procesos.html) &nbsp;·&nbsp; [Gestión de memoria](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/gestion-memoria.html) &nbsp;·&nbsp; [Combinado](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/procesos-memoria.html)
+### 👉 [Memoria virtual](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/memoria-virtual.html) &nbsp;·&nbsp; [Planificación de disco](https://seperezalbor.github.io/simulador-planificacion-procesos-memoria/planificacion-disco.html)
 
-También se pueden descargar ([`planificacion-procesos.html`](planificacion-procesos.html), [`gestion-memoria.html`](gestion-memoria.html), [`procesos-memoria.html`](procesos-memoria.html)) y abrir con doble clic.
+También se pueden descargar ([`planificacion-procesos.html`](planificacion-procesos.html), [`gestion-memoria.html`](gestion-memoria.html), [`procesos-memoria.html`](procesos-memoria.html), [`memoria-virtual.html`](memoria-virtual.html), [`planificacion-disco.html`](planificacion-disco.html)) y abrir con doble clic.
 
 Las dos comparten la misma lógica: una **cola de trabajo** que se llena a mano, la marca **OK** sobre cada fila ya atendida, la **espera** calculada como `tiempo actual − llegada`, un **recorrido paso a paso** por cada unidad de tiempo, y **modo claro y oscuro**.
 
@@ -98,6 +99,39 @@ Como se compacta apenas alguien termina, **siempre queda un único hueco libre**
 
 ---
 
+## Memoria virtual: reemplazo de páginas
+
+Recibe una cadena de referencias y un número de marcos, y arma la tabla paso a paso: una columna por referencia, con el contenido de cada marco, el puntero, la víctima y el resultado.
+
+**Algoritmos:** FIFO, Óptimo, LRU y Clock.
+
+Convenciones del curso, que no son las de los libros:
+
+- Un **fallo** es solo cuando hay que **sacar** una página. Si entra a un marco vacío es una **carga** y no cuenta.
+- **Tasa de fallos** = fallos / número de referencias.
+- En **Óptimo**, cada página lleva `página(D)`: en cuántos pasos vuelve a aparecer. Si no vuelve, se le pone **99**, y ese 99 también baja 1 por paso. Sale la de mayor número.
+- En **LRU**, cada página lleva `página(C)`: al referenciarse recibe un valor igual al número de marcos y baja 1 por paso. Sale la de menor número.
+- En **Clock**, el bit de uso se activa **solo cuando la página vuelve a aparecer**; una página nueva entra con el bit en 0.
+
+Como las cargas no cuentan, estos números son **los del libro menos el número de marcos**. Ojo con eso: la anomalía de Belady queda invisible (FIFO da 6 con 3 marcos y 6 con 4, cuando en el libro sería 9 y 10).
+
+---
+
+## Planificación de disco
+
+Recibe la posición inicial del cabezal y las solicitudes en orden de llegada. Muestra la tabla de recorrido (paso, cilindro, distancia) con el total, y la **gráfica del movimiento del brazo**: los cilindros en el eje horizontal con la escala completa, los pasos bajando por el eje vertical, y los puntos unidos en orden.
+
+**Algoritmos:** FCFS, SSTF, SCAN ascendente, SCAN descendente y SCAN-C.
+
+El brazo **se devuelve en la última solicitud**, no en el extremo físico del disco. Esto es lo que los libros llaman LOOK y C-LOOK, pero en el curso se llaman SCAN y SCAN-C.
+
+Dos reglas que el profesor no ha confirmado quedaron como opción:
+
+- **Empate en SSTF**, cuando dos solicitudes están a la misma distancia.
+- **El salto de regreso de SCAN-C**, si se suma o no al recorrido total. Se muestran los dos valores.
+
+---
+
 ## Estado
 
-Las tres están verificadas: las dos primeras contra los ejercicios resueltos en clase, celda por celda. La combinada se comprobó con 480 simulaciones sobre los seis algoritmos y los dos tipos de ejercicio, verificando que la RAM siempre sume el total y que nunca aparezca más de un hueco libre.
+Las cinco están verificadas: las dos primeras contra los ejercicios resueltos en clase, celda por celda. La combinada se comprobó con 480 simulaciones sobre los seis algoritmos y los dos tipos de ejercicio, verificando que la RAM siempre sume el total y que nunca aparezca más de un hueco libre. Las de memoria virtual y disco reproducen los 13 casos de prueba, incluido el ejercicio de clase y la cadena de Silberschatz del libro.

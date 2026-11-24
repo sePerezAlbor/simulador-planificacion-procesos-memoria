@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de Reemplazo de Páginas</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#ffffff; --th:#eef2f6;
+    --line:#c9d2db; --line2:#e4e9ee;
+    --txt:#1d2733; --muted:#64748b;
+    --accent:#1d5fa8; --accent2:#e8f0fa; --accentLine:#cfe0f2; --onAccent:#ffffff;
+    --ok:#15803d; --okbg:#e7f6ec; --okTxt:#2a4b33;
+    --err:#b91c1c; --errbg:#fdecec; --errLine:#f3b7b7;
+    --hl:#fffbe6;
+    --carga:#dff0d8; --cargaTxt:#2a4b33;
+    --fallo:#fdecec; --falloTxt:#8c2a2a;
+    --vacio:#f1f3f5; --vacioTxt:#94a3b4;
+    color-scheme:light;
+  }
+  :root[data-tema="oscuro"]{
+    --bg:#0f141a; --card:#19212a; --th:#222c38;
+    --line:#37434f; --line2:#262f3a;
+    --txt:#e3eaf2; --muted:#93a2b3;
+    --accent:#7ab6f2; --accent2:#1b2a3a; --accentLine:#2d4560; --onAccent:#0d1620;
+    --ok:#6ad495; --okbg:#1a3326; --okTxt:#bfe8cd;
+    --err:#ff9f9f; --errbg:#3a2020; --errLine:#6b3434;
+    --hl:#3a3315;
+    --carga:#23402d; --cargaTxt:#bfe8cd;
+    --fallo:#3a2020; --falloTxt:#ffc4c4;
+    --vacio:#1f2730; --vacioTxt:#6b7885;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:24px 16px 80px;background:var(--bg);color:var(--txt);
+       font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px}
+  h2{font-size:16px;margin:0 0 14px;color:var(--accent);letter-spacing:.2px}
+  h3{font-size:14px;margin:0 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  .sub{margin:0 0 18px;color:var(--muted);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:600}
+  select,input[type=number],input[type=text]{
+    font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;
+    background:var(--card);color:var(--txt)}
+  button{font:inherit;font-weight:600;padding:8px 15px;border:1px solid var(--line);border-radius:6px;
+         background:var(--card);color:var(--txt);cursor:pointer}
+  button:hover{background:var(--accent2);border-color:var(--accent)}
+  button.pri{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+  button.pri:hover{filter:brightness(1.12)}
+  button.mini{padding:3px 9px;font-size:13px}
+  button:disabled{opacity:.4;cursor:not-allowed}
+
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  #btnTema{flex:0 0 auto;font-size:13.5px;padding:7px 13px}
+  .nav{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
+  .nav a{text-decoration:none;font-size:14px;font-weight:600;padding:7px 16px;border-radius:7px;
+         border:1px solid var(--line);background:var(--card);color:var(--muted)}
+  .nav a:hover{border-color:var(--accent);color:var(--accent)}
+  .nav a.activo{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+
+  table.xl{border-collapse:collapse;font-size:14px;background:var(--card)}
+  table.xl th,table.xl td{border:1px solid var(--line);padding:4px 9px;text-align:center;white-space:nowrap}
+  table.xl th{background:var(--th);font-weight:600;font-size:13px}
+  table.xl td.et{background:var(--th);font-weight:600;font-size:13px;text-align:left;position:sticky;left:0}
+  td.carga{background:var(--carga);color:var(--cargaTxt);font-weight:600}
+  td.fallo{background:var(--fallo);color:var(--falloTxt);font-weight:600}
+  td.vac{background:var(--vacio);color:var(--vacioTxt)}
+  td.nueva{outline:2px solid var(--accent);outline-offset:-2px}
+  td.ahora{background:var(--hl)}
+  .tabla{overflow-x:auto}
+  .vacia{color:var(--muted);font-size:13px;font-style:italic;padding:6px 2px}
+
+  .critbox{background:var(--accent2);border:1px solid var(--accentLine);border-radius:8px;
+           padding:12px 14px;margin-bottom:10px;font-size:14px}
+  .critbox b{color:var(--accent)}
+  .err{background:var(--errbg);border:1px solid var(--errLine);color:var(--err);padding:10px 14px;
+       border-radius:8px;font-size:14px;margin-bottom:16px;white-space:pre-line}
+  .stepbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .tnow{font-size:19px;font-weight:700;color:var(--accent);min-width:92px}
+  .hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+  .met{font-size:17px;font-weight:700;color:var(--accent);margin-top:10px}
+  .log{font-size:13.5px;margin:0;padding:0;list-style:none}
+  .log li{padding:4px 8px;border-bottom:1px solid var(--line2)}
+  .log li:last-child{border-bottom:none}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <h1>Simulador de Reemplazo de Páginas</h1>
+      <p class="sub">Memoria virtual &middot; FIFO, Óptimo, LRU y Clock</p>
+    </div>
+    <button id="btnTema" type="button">Modo oscuro</button>
+  </div>
+
+  <nav class="nav">
+    <a href="planificacion-procesos.html">Procesos</a>
+    <a href="gestion-memoria.html">Memoria</a>
+    <a href="procesos-memoria.html">Combinado</a>
+    <a href="memoria-virtual.html" class="activo">Memoria virtual</a>
+    <a href="planificacion-disco.html">Disco</a>
+  </nav>
+
+  <div class="card">
+    <h2>1 &middot; Datos del ejercicio</h2>
+    <div class="row">
+      <label class="f" style="flex:1;min-width:320px">Cadena de referencias
+        <input id="cadena" type="text" value="2, 3, 2, 4, 5, 3, 4, 8, 7, 4, 3, 2">
+      </label>
+      <label class="f">Marcos de página
+        <input id="marcos" type="number" min="1" max="10" step="1" value="3" style="width:130px">
+      </label>
+      <label class="f">Algoritmo
+        <select id="algo" style="min-width:190px">
+          <option value="FIFO">FIFO</option>
+          <option value="OPT">Óptimo</option>
+          <option value="LRU">LRU</option>
+          <option value="CLOCK">Clock</option>
+        </select>
+      </label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <select id="selEj" style="min-width:270px"></select>
+      <button id="btnAzar">Generar aleatorio</button>
+      <button id="btnSim" class="pri">Simular</button>
+    </div>
+    <p class="hint">Separa las páginas con comas o espacios. Un <b>fallo</b> es solo cuando hay que sacar una página;
+      si entra a un marco vacío es una <b>carga</b> y no cuenta como fallo.</p>
+  </div>
+
+  <div class="card">
+    <h2>2 &middot; Cómo decide este algoritmo</h2>
+    <div id="panelRegla"></div>
+  </div>
+
+  <div id="error" class="err" hidden></div>
+
+  <div id="resultados" hidden>
+    <div class="card stepbar">
+      <button id="bIni" class="mini">&#8676; Inicio</button>
+      <button id="bPrev" class="mini">&#9664; Anterior</button>
+      <span class="tnow" id="tNow">Paso 0</span>
+      <button id="bNext" class="mini">Siguiente &#9654;</button>
+      <button id="bFin" class="mini">Final &#8677;</button>
+      <span style="flex:1"></span>
+      <span class="hint" id="pasoInfo"></span>
+    </div>
+
+    <div class="card">
+      <h2 id="tituloTabla">Tabla</h2>
+      <div class="tabla" id="tabla"></div>
+      <p class="hint" id="pieTabla"></p>
+    </div>
+
+    <div class="card">
+      <h2>Qué pasó en este paso</h2>
+      <ul class="log" id="eventos"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Resultado</h2>
+      <div class="tabla" id="metricas"></div>
+      <div class="met" id="tasa"></div>
+    </div>
+
+    <div class="card">
+      <h2>Comparación de los cuatro algoritmos</h2>
+      <div class="tabla" id="comparacion"></div>
+      <p class="hint">Con la misma cadena y el mismo número de marcos.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ======================= CONVENCIONES =======================
+   - Un paso = una referencia. Los pasos se numeran desde 0.
+   - FALLO: la página no está y hay que SACAR otra.
+   - CARGA: la página no está pero entra a un marco vacío. No es fallo.
+   - ACIERTO: la página ya está en memoria.
+   - Tasa de fallos = Fallos / número de referencias.
+   ============================================================ */
+
+const NOMBRE = {FIFO:'FIFO', OPT:'Óptimo', LRU:'LRU', CLOCK:'Clock'};
+const ORDEN  = ['FIFO','OPT','LRU','CLOCK'];
+
+const REGLA = {
+  FIFO:'<b>FIFO.</b> Sale la página que lleva más tiempo en memoria. El puntero marca el marco de la más antigua ' +
+       'y <b>solo avanza cuando entra una página</b> (carga o fallo), nunca en un acierto.',
+  OPT: '<b>Óptimo.</b> Sale la página que volverá a usarse más tarde. Cada página lleva <i>página(D)</i>, donde D es ' +
+       'en cuántos pasos vuelve a aparecer. Si no vuelve a aparecer se le pone <b>99</b>, y ese 99 también baja 1 por paso. ' +
+       'Sale la de <b>mayor</b> número.',
+  LRU: '<b>LRU.</b> Sale la que lleva más tiempo sin usarse. Cada página lleva <i>página(C)</i>: al referenciarse recibe ' +
+       'un valor igual al número de marcos y baja 1 por paso. Sale la de <b>menor</b> número.',
+  CLOCK:'<b>Clock.</b> Cada marco tiene un bit de uso (<b>*</b>). El bit se activa <b>solo cuando la página vuelve a aparecer</b>; ' +
+       'una página nueva entra con el bit en 0. Al buscar víctima, el puntero salta las que tienen * quitándoles el bit, ' +
+       'y reemplaza en el primer marco con bit 0.'
+};
+
+const EJEMPLOS = [
+  {rot:'Ejercicio de clase',            n:3, c:[2,3,2,4,5,3,4,8,7,4,3,2]},
+  {rot:'Libro (Silberschatz)',          n:3, c:[7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1]},
+  {rot:'Belady · 3 marcos',             n:3, c:[1,2,3,4,1,2,5,1,2,3,4,5]},
+  {rot:'Belady · 4 marcos',             n:4, c:[1,2,3,4,1,2,5,1,2,3,4,5]},
+  {rot:'Bucle de 4 páginas',            n:3, c:[1,2,3,4,1,2,3,4,1,2,3,4]},
+  {rot:'Bucle de 5 páginas',            n:4, c:[1,2,3,4,5,1,2,3,4,5,1,2,3,4,5]},
+  {rot:'Páginas calientes + bucle',     n:3, c:[1,2,1,3,1,2,4,5,6,7,4,5,6,7,1,2,1,2]}
+];
+
+let algoritmo = 'FIFO';
+let pasos = [];
+let paso = 0;
+let datos = null;
+
+/* ======================= MOTOR ======================= */
+
+// Devuelve un arreglo de pasos. Cada paso guarda el estado AL FINAL del paso.
+function simularMV(R, N, algo){
+  const L = R.length;
+  const marco = new Array(N).fill(null);
+  const bit   = new Array(N).fill(0);
+  const obj = {}, uso = {};
+  let punt = 0, fallos = 0, cargas = 0, aciertos = 0;
+  const out = [];
+
+  const proxima = (p, t) => {
+    for(let k = t + 1; k < L; k++) if(R[k] === p) return k;
+    return t + 99;                       // no vuelve a aparecer
+  };
+
+  for(let t = 0; t < L; t++){
+    const p = R[t];
+    let resultado, victima = null, kUsado = null;
+
+    if(marco.indexOf(p) >= 0){
+      resultado = 'Acierto';
+      aciertos++;
+      kUsado = marco.indexOf(p);
+      if(algo === 'CLOCK') bit[kUsado] = 1;
+    }else{
+      let k;
+      if(algo === 'FIFO'){
+        k = punt;
+      }else if(algo === 'CLOCK'){
+        while(marco[punt] !== null && bit[punt] === 1){
+          bit[punt] = 0;
+          punt = (punt + 1) % N;
+        }
+        k = punt;
+      }else{
+        const vacio = marco.indexOf(null);
+        if(vacio >= 0){
+          k = vacio;                     // primer marco vacío, de izquierda a derecha
+        }else if(algo === 'OPT'){
+          k = 0;
+          for(let i = 1; i < N; i++) if(obj[marco[i]] - t > obj[marco[k]] - t) k = i;
+        }else{                           // LRU
+          k = 0;
+          for(let i = 1; i < N; i++) if(uso[marco[i]] < uso[marco[k]]) k = i;
+        }
+      }
+      if(marco[k] === null){ resultado = 'Carga'; cargas++; }
+      else { resultado = 'Fallo'; victima = marco[k]; fallos++; }
+      marco[k] = p;
+      kUsado = k;
+      if(algo === 'CLOCK') bit[k] = 0;
+      if(algo === 'FIFO' || algo === 'CLOCK') punt = (punt + 1) % N;
+    }
+
+    obj[p] = proxima(p, t);
+    uso[p] = t;
+
+    // Etiqueta de cada marco al final del paso
+    const celdas = marco.map((pg, i) => {
+      if(pg === null) return null;
+      if(algo === 'OPT')   return pg + '(' + (obj[pg] - t) + ')';
+      if(algo === 'LRU')   return pg + '(' + (N - (t - uso[pg])) + ')';
+      if(algo === 'CLOCK') return pg + (bit[i] ? '*' : '');
+      return String(pg);
+    });
+
+    out.push({t:t, ref:p, celdas:celdas, k:kUsado, punt:punt,
+              victima:victima, resultado:resultado,
+              fallos:fallos, cargas:cargas, aciertos:aciertos});
+  }
+  return out;
+}
+
+function totales(R, N, algo){
+  const ps = simularMV(R, N, algo);
+  const u = ps[ps.length - 1];
+  return u ? {fallos:u.fallos, cargas:u.cargas, aciertos:u.aciertos}
+           : {fallos:0, cargas:0, aciertos:0};
+}
+
+/* ======================= VALIDACION ======================= */
+
+function leerCadena(){
+  const txt = document.getElementById('cadena').value.trim();
+  if(!txt) return null;
+  const partes = txt.split(/[\s,;]+/).filter(x => x !== '');
+  const nums = [];
+  for(const x of partes){
+    const n = Number(x);
+    if(!Number.isInteger(n) || n < 0) return null;
+    nums.push(n);
+  }
+  return nums.length ? nums : null;
+}
+
+function validar(){
+  const e = [];
+  const R = leerCadena();
+  if(R === null) e.push('La cadena de referencias debe ser una lista de enteros mayores o iguales a 0, separados por comas o espacios.');
+  const N = Number(document.getElementById('marcos').value);
+  if(!Number.isInteger(N) || N < 1) e.push('Los marcos de página deben ser un entero mayor o igual a 1.');
+  else if(R && N > 10) e.push('Máximo 10 marcos.');
+  return e;
+}
+
+/* ======================= RENDER ======================= */
+
+function pintarRegla(){
+  document.getElementById('panelRegla').innerHTML = '<div class="critbox">' + REGLA[algoritmo] + '</div>';
+}
+
+function tabla(hasta){
+  const N = datos.N;
+  const usaPunt = (algoritmo === 'FIFO' || algoritmo === 'CLOCK');
+  const cols = hasta + 1;
+
+  let h = '<table class="xl"><tbody>';
+  const fila = (etiqueta, celdas, clases) => {
+    let f = '<tr><td class="et">' + etiqueta + '</td>';
+    for(let t = 0; t < cols; t++){
+      const cl = (clases ? clases(t) : '') + (t === hasta ? ' ahora' : '');
+      f += '<td class="' + cl.trim() + '">' + celdas(t) + '</td>';
+    }
+    return f + '</tr>';
+  };
+
+  h += fila('Paso',       t => t);
+  h += fila('Referencia', t => '<b>' + pasos[t].ref + '</b>');
+  for(let i = 0; i < N; i++){
+    h += fila('Marco ' + i,
+      t => pasos[t].celdas[i] === null ? '' : pasos[t].celdas[i],
+      t => (pasos[t].celdas[i] === null ? 'vac' : '') + (pasos[t].k === i ? ' nueva' : ''));
+  }
+  if(usaPunt) h += fila('Puntero', t => '&rarr; M' + pasos[t].punt);
+  h += fila('Víctima',   t => pasos[t].victima === null ? '' : pasos[t].victima);
+  h += fila('Resultado', t => pasos[t].resultado,
+                         t => pasos[t].resultado === 'Fallo' ? 'fallo' :
+                              pasos[t].resultado === 'Carga' ? 'carga' : '');
+  h += '</tbody></table>';
+  return h;
+}
+
+function render(){
+  const u = pasos[paso];
+  document.getElementById('tNow').textContent = 'Paso ' + paso;
+  document.getElementById('pasoInfo').textContent =
+    'Paso ' + paso + ' de ' + (pasos.length - 1) + (paso === pasos.length - 1 ? ' · resultado final' : '');
+  document.getElementById('bIni').disabled  = (paso === 0);
+  document.getElementById('bPrev').disabled = (paso === 0);
+  document.getElementById('bNext').disabled = (paso === pasos.length - 1);
+  document.getElementById('bFin').disabled  = (paso === pasos.length - 1);
+
+  document.getElementById('tituloTabla').textContent =
+    NOMBRE[algoritmo] + ' — ' + datos.N + ' marcos';
+  document.getElementById('tabla').innerHTML = tabla(paso);
+  document.getElementById('pieTabla').innerHTML =
+    'La columna amarilla es el paso actual. El marco con borde azul es el que acaba de recibir la página. ' +
+    (algoritmo === 'OPT'   ? 'Entre paréntesis, en cuántos pasos vuelve a aparecer cada página (99 = no vuelve).' :
+     algoritmo === 'LRU'   ? 'Entre paréntesis, el valor que baja 1 por paso desde la última vez que se usó.' :
+     algoritmo === 'CLOCK' ? 'El asterisco marca el bit de uso en 1.' : '');
+
+  const ev = [];
+  ev.push('Paso ' + u.t + ': se pide la página <b>' + u.ref + '</b>.');
+  if(u.resultado === 'Acierto'){
+    ev.push('Ya estaba en el marco ' + u.k + '. <b>Acierto</b>, no se toca nada más.' +
+            (algoritmo === 'CLOCK' ? ' Se le activa el bit de uso.' : '') +
+            ((algoritmo === 'FIFO' || algoritmo === 'CLOCK') ? ' El puntero NO se mueve.' : ''));
+  }else if(u.resultado === 'Carga'){
+    ev.push('No estaba, pero el marco ' + u.k + ' estaba vacío. Es una <b>carga</b>, no cuenta como fallo.');
+  }else{
+    ev.push('No estaba y no había marcos vacíos: sale <b>' + u.victima + '</b> del marco ' + u.k +
+            '. Es un <b>fallo de página</b>.');
+  }
+  ev.push('Acumulado: ' + u.fallos + ' fallo' + (u.fallos === 1 ? '' : 's') + ', ' +
+          u.cargas + ' carga' + (u.cargas === 1 ? '' : 's') + ', ' +
+          u.aciertos + ' acierto' + (u.aciertos === 1 ? '' : 's') + '.');
+  document.getElementById('eventos').innerHTML = ev.map(x => '<li>' + x + '</li>').join('');
+
+  const L = datos.R.length;
+  document.getElementById('metricas').innerHTML =
+    '<table class="xl"><thead><tr><th>Referencias</th><th>Fallos</th><th>Cargas</th><th>Aciertos</th></tr></thead>' +
+    '<tbody><tr><td>' + L + '</td><td class="fallo">' + u.fallos + '</td><td class="carga">' + u.cargas +
+    '</td><td>' + u.aciertos + '</td></tr></tbody></table>';
+  document.getElementById('tasa').innerHTML =
+    'Tasa de fallos = ' + u.fallos + ' / ' + L + ' = ' + (Math.round(u.fallos / L * 1e6) / 1e6) +
+    (paso < pasos.length - 1 ? ' <span style="font-weight:400;color:var(--muted)">(parcial)</span>' : '');
+
+  let c = '<table class="xl"><thead><tr><th>Algoritmo</th><th>Fallos</th><th>Cargas</th><th>Aciertos</th><th>Tasa de fallos</th></tr></thead><tbody>';
+  let mejor = Infinity;
+  ORDEN.forEach(a => { const tt = totales(datos.R, datos.N, a); if(tt.fallos < mejor) mejor = tt.fallos; });
+  ORDEN.forEach(a => {
+    const tt = totales(datos.R, datos.N, a);
+    const act = (a === algoritmo) ? ' style="outline:2px solid var(--accent);outline-offset:-2px"' : '';
+    c += '<tr' + act + '><td><b>' + NOMBRE[a] + '</b></td><td' + (tt.fallos === mejor ? ' class="carga"' : '') +
+         '>' + tt.fallos + '</td><td>' + tt.cargas + '</td><td>' + tt.aciertos + '</td><td>' +
+         (Math.round(tt.fallos / L * 1e6) / 1e6) + '</td></tr>';
+  });
+  document.getElementById('comparacion').innerHTML = c + '</tbody></table>';
+}
+
+/* ======================= INTERFAZ ======================= */
+
+function mostrarErrores(lista){
+  const box = document.getElementById('error');
+  if(lista.length === 0){ box.hidden = true; return; }
+  box.hidden = false;
+  box.textContent = lista.join('\n');
+}
+
+function simularYRender(){
+  const errs = validar();
+  mostrarErrores(errs);
+  if(errs.length){ document.getElementById('resultados').hidden = true; return; }
+  datos = {R: leerCadena(), N: Number(document.getElementById('marcos').value)};
+  pasos = simularMV(datos.R, datos.N, algoritmo);
+  paso = pasos.length - 1;
+  document.getElementById('resultados').hidden = false;
+  render();
+}
+
+document.getElementById('algo').addEventListener('change', e => {
+  algoritmo = e.target.value;
+  pintarRegla();
+  if(!document.getElementById('resultados').hidden) simularYRender();
+});
+['cadena','marcos'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    document.getElementById('resultados').hidden = true;
+  });
+});
+
+(function(){
+  const sel = document.getElementById('selEj');
+  let h = '<option value="">Cargar ejemplo&hellip;</option>';
+  EJEMPLOS.forEach((e, i) => h += '<option value="' + i + '">' + e.rot + '</option>');
+  sel.innerHTML = h;
+  sel.addEventListener('change', ev => {
+    const i = ev.target.value;
+    if(i === '') return;
+    const e = EJEMPLOS[+i];
+    document.getElementById('cadena').value = e.c.join(', ');
+    document.getElementById('marcos').value = e.n;
+    simularYRender();
+  });
+})();
+
+document.getElementById('btnAzar').addEventListener('click', () => {
+  const azar = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const N = azar(3, 4);
+  const distintas = azar(N + 2, N + 4);          // bastantes más páginas que marcos
+  const L = azar(12, 16);
+  const R = [];
+  for(let i = 0; i < L; i++) R.push(azar(1, distintas));
+  document.getElementById('cadena').value = R.join(', ');
+  document.getElementById('marcos').value = N;
+  document.getElementById('selEj').value = '';
+  simularYRender();
+});
+
+document.getElementById('btnSim').addEventListener('click', simularYRender);
+document.getElementById('bIni').addEventListener('click',  () => { paso = 0; render(); });
+document.getElementById('bPrev').addEventListener('click', () => { if(paso > 0){ paso--; render(); } });
+document.getElementById('bNext').addEventListener('click', () => { if(paso < pasos.length - 1){ paso++; render(); } });
+document.getElementById('bFin').addEventListener('click',  () => { paso = pasos.length - 1; render(); });
+
+document.addEventListener('keydown', e => {
+  if(document.getElementById('resultados').hidden) return;
+  if(['INPUT','SELECT','TEXTAREA'].indexOf(e.target.tagName) >= 0) return;
+  if(e.key === 'ArrowRight' && paso < pasos.length - 1){ paso++; render(); }
+  if(e.key === 'ArrowLeft'  && paso > 0){ paso--; render(); }
+});
+
+/* ======================= TEMA ======================= */
+
+function aplicarTema(t){
+  document.documentElement.setAttribute('data-tema', t);
+  document.getElementById('btnTema').textContent = (t === 'oscuro') ? 'Modo claro' : 'Modo oscuro';
+  try{ localStorage.setItem('tema', t); }catch(e){}
+}
+function temaGuardado(){
+  let t = null;
+  try{ t = localStorage.getItem('tema'); }catch(e){}
+  if(t === 'claro' || t === 'oscuro') return t;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'oscuro' : 'claro';
+}
+document.getElementById('btnTema').addEventListener('click', () => {
+  aplicarTema(document.documentElement.getAttribute('data-tema') === 'oscuro' ? 'claro' : 'oscuro');
+});
+
+aplicarTema(temaGuardado());
+pintarRegla();
+simularYRender();
+</script>
+</body>
+</html>

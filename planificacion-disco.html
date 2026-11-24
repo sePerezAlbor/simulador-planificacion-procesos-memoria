@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de Planificación de Disco</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#ffffff; --th:#eef2f6;
+    --line:#c9d2db; --line2:#e4e9ee;
+    --txt:#1d2733; --muted:#64748b;
+    --accent:#1d5fa8; --accent2:#e8f0fa; --accentLine:#cfe0f2; --onAccent:#ffffff;
+    --ok:#15803d; --okbg:#e7f6ec; --okTxt:#2a4b33;
+    --err:#b91c1c; --errbg:#fdecec; --errLine:#f3b7b7;
+    --hl:#fffbe6;
+    --rejilla:#e4e9ee; --traza:#1d5fa8; --salto:#b91c1c; --punto:#1d5fa8;
+    color-scheme:light;
+  }
+  :root[data-tema="oscuro"]{
+    --bg:#0f141a; --card:#19212a; --th:#222c38;
+    --line:#37434f; --line2:#262f3a;
+    --txt:#e3eaf2; --muted:#93a2b3;
+    --accent:#7ab6f2; --accent2:#1b2a3a; --accentLine:#2d4560; --onAccent:#0d1620;
+    --ok:#6ad495; --okbg:#1a3326; --okTxt:#bfe8cd;
+    --err:#ff9f9f; --errbg:#3a2020; --errLine:#6b3434;
+    --hl:#3a3315;
+    --rejilla:#2b3642; --traza:#7ab6f2; --salto:#ff9f9f; --punto:#7ab6f2;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:24px 16px 80px;background:var(--bg);color:var(--txt);
+       font:15px/1.5 "Segoe UI",system-ui,-apple-system,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px}
+  h2{font-size:16px;margin:0 0 14px;color:var(--accent);letter-spacing:.2px}
+  .sub{margin:0 0 18px;color:var(--muted);font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted);font-weight:600}
+  select,input[type=number],input[type=text]{
+    font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:6px;
+    background:var(--card);color:var(--txt)}
+  button{font:inherit;font-weight:600;padding:8px 15px;border:1px solid var(--line);border-radius:6px;
+         background:var(--card);color:var(--txt);cursor:pointer}
+  button:hover{background:var(--accent2);border-color:var(--accent)}
+  button.pri{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+  button.pri:hover{filter:brightness(1.12)}
+  .chk{display:flex;align-items:center;gap:7px;font-size:14px;cursor:pointer;font-weight:500}
+
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  #btnTema{flex:0 0 auto;font-size:13.5px;padding:7px 13px}
+  .nav{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
+  .nav a{text-decoration:none;font-size:14px;font-weight:600;padding:7px 16px;border-radius:7px;
+         border:1px solid var(--line);background:var(--card);color:var(--muted)}
+  .nav a:hover{border-color:var(--accent);color:var(--accent)}
+  .nav a.activo{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
+
+  table.xl{border-collapse:collapse;font-size:14px;background:var(--card);width:100%}
+  table.xl th,table.xl td{border:1px solid var(--line);padding:5px 9px;text-align:center;white-space:nowrap}
+  table.xl th{background:var(--th);font-weight:600;font-size:13px}
+  tr.salto td{background:var(--errbg);color:var(--err);font-weight:600}
+  tr.tot td{background:var(--th);font-weight:700}
+  .tabla{overflow-x:auto}
+  .grid2{display:grid;grid-template-columns:minmax(300px,1fr) minmax(340px,1.4fr);gap:16px;align-items:start}
+  .grid2 > .card{min-width:0;margin-bottom:0}
+
+  .critbox{background:var(--accent2);border:1px solid var(--accentLine);border-radius:8px;
+           padding:12px 14px;margin-bottom:10px;font-size:14px}
+  .critbox b{color:var(--accent)}
+  .err{background:var(--errbg);border:1px solid var(--errLine);color:var(--err);padding:10px 14px;
+       border-radius:8px;font-size:14px;margin-bottom:16px;white-space:pre-line}
+  .hint{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+  .met{font-size:17px;font-weight:700;color:var(--accent);margin-top:10px}
+  svg{display:block;max-width:100%;height:auto}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <h1>Simulador de Planificación de Disco</h1>
+      <p class="sub">Memoria secundaria &middot; FCFS, SSTF, SCAN y SCAN-C</p>
+    </div>
+    <button id="btnTema" type="button">Modo oscuro</button>
+  </div>
+
+  <nav class="nav">
+    <a href="planificacion-procesos.html">Procesos</a>
+    <a href="gestion-memoria.html">Memoria</a>
+    <a href="procesos-memoria.html">Combinado</a>
+    <a href="memoria-virtual.html">Memoria virtual</a>
+    <a href="planificacion-disco.html" class="activo">Disco</a>
+  </nav>
+
+  <div class="card">
+    <h2>1 &middot; Datos del ejercicio</h2>
+    <div class="row">
+      <label class="f">Posición inicial del cabezal
+        <input id="inicio" type="number" step="1" value="50" style="width:170px">
+      </label>
+      <label class="f" style="flex:1;min-width:300px">Solicitudes, en orden de llegada
+        <input id="pets" type="text" value="24, 16, 45, 2, 78, 34">
+      </label>
+      <label class="f">Cilindro máximo
+        <input id="cmax" type="number" min="1" step="1" value="100" style="width:130px">
+      </label>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <label class="f">Algoritmo
+        <select id="algo" style="min-width:200px">
+          <option value="FCFS">FCFS</option>
+          <option value="SSTF">SSTF</option>
+          <option value="SASC">SCAN ascendente</option>
+          <option value="SDESC">SCAN descendente</option>
+          <option value="CSCAN">SCAN-C</option>
+        </select>
+      </label>
+      <label class="f" id="wrapEmp" hidden>Empate en SSTF
+        <select id="empate" style="min-width:210px">
+          <option value="arriba">Gana la de arriba</option>
+          <option value="abajo">Gana la de abajo</option>
+          <option value="direccion">Sigue la dirección del brazo</option>
+        </select>
+      </label>
+      <label class="chk" id="wrapSalto" hidden>
+        <input type="checkbox" id="sumarSalto" checked> Sumar el salto de regreso al total
+      </label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <select id="selEj" style="min-width:260px"></select>
+      <button id="btnAzar">Generar aleatorio</button>
+      <button id="btnSim" class="pri">Simular</button>
+    </div>
+    <p class="hint">El brazo <b>se devuelve en la última solicitud</b>, no en el extremo físico del disco.
+      El cilindro máximo solo fija la escala de la gráfica.</p>
+  </div>
+
+  <div class="card">
+    <h2>2 &middot; Cómo decide este algoritmo</h2>
+    <div id="panelRegla"></div>
+  </div>
+
+  <div id="error" class="err" hidden></div>
+
+  <div id="resultados" hidden>
+    <div class="grid2">
+      <div class="card">
+        <h2>Recorrido</h2>
+        <div class="tabla" id="tabla"></div>
+        <div class="met" id="total"></div>
+        <p class="hint" id="pieTotal"></p>
+      </div>
+      <div class="card">
+        <h2>Gráfica</h2>
+        <div id="gráfica"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Comparación de los cinco algoritmos</h2>
+      <div class="tabla" id="comparacion"></div>
+      <p class="hint" id="pieComp"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ======================= CONVENCIONES =======================
+   - Se dan la posición inicial del cabezal y las solicitudes en orden de llegada.
+   - El brazo NO llega al extremo físico: se devuelve en la última solicitud
+     de cada lado (la mayor o la menor del conjunto).
+   - Recorrido total = suma de |cilindro - cilindro anterior|.
+   ============================================================ */
+
+const NOMBRE = {FCFS:'FCFS', SSTF:'SSTF', SASC:'SCAN ascendente',
+                SDESC:'SCAN descendente', CSCAN:'SCAN-C'};
+const ORDEN = ['FCFS','SSTF','SASC','SDESC','CSCAN'];
+
+const REGLA = {
+  FCFS: '<b>FCFS.</b> Atiende las solicitudes en el orden exacto en que llegaron, sin reordenar nada.',
+  SSTF: '<b>SSTF.</b> Desde donde está, va siempre a la solicitud <b>más cercana</b>. Puede dejar esperando ' +
+        'mucho tiempo a las solicitudes lejanas.',
+  SASC: '<b>SCAN ascendente.</b> Sube atendiendo las solicitudes mayores hasta <b>la mayor de todas</b>, ' +
+        'ahí se devuelve y baja atendiendo las menores.',
+  SDESC:'<b>SCAN descendente.</b> Baja atendiendo las solicitudes menores hasta <b>la menor de todas</b>, ' +
+        'ahí se devuelve y sube atendiendo las mayores.',
+  CSCAN:'<b>SCAN-C.</b> Sube hasta la mayor solicitud, <b>salta</b> hasta la menor sin atender nada en el regreso, ' +
+        'y vuelve a subir atendiendo las que quedaban por debajo del punto de partida.'
+};
+
+const EJEMPLOS = [
+  {rot:'Ejercicio de clase',          x:50, a:[24,16,45,2,78,34]},
+  {rot:'Mismas solicitudes, inicio 30',x:30, a:[24,16,45,2,78,34]},
+  {rot:'Caso donde SSTF falla',       x:50, a:[53,40,30,20,10,99]},
+  {rot:'Inicio cerca del borde',      x:90, a:[10,35,60,85,95]},
+  {rot:'Todas de un lado',            x:20, a:[30,55,70,90]},
+  {rot:'Empate de distancias',        x:50, a:[30,35,65,70,40]}
+];
+
+let algoritmo = 'FCFS';
+let datos = null;
+
+/* ======================= MOTOR ======================= */
+
+// Devuelve {orden:[...], salto:indice del salto de regreso o -1}
+function ordenVisita(x, A, algo, empate){
+  if(algo === 'FCFS') return {orden:A.slice(), salto:-1};
+
+  if(algo === 'SSTF'){
+    const pend = A.slice(), orden = [];
+    let pos = x, dir = 1;
+    while(pend.length){
+      let dmin = Infinity;
+      for(const c of pend) dmin = Math.min(dmin, Math.abs(c - pos));
+      const cand = pend.filter(c => Math.abs(c - pos) === dmin);
+      let el;
+      if(cand.length === 1){
+        el = cand[0];
+      }else{
+        const arr = cand.filter(c => c >= pos), aba = cand.filter(c => c < pos);
+        if(empate === 'direccion')
+          el = (dir > 0) ? (arr.length ? Math.min.apply(null, arr) : Math.max.apply(null, aba))
+                         : (aba.length ? Math.max.apply(null, aba) : Math.min.apply(null, arr));
+        else if(empate === 'abajo')
+          el = aba.length ? Math.max.apply(null, aba) : Math.min.apply(null, arr);
+        else
+          el = arr.length ? Math.min.apply(null, arr) : Math.max.apply(null, aba);
+      }
+      if(el !== pos) dir = (el > pos) ? 1 : -1;
+      orden.push(el);
+      pend.splice(pend.indexOf(el), 1);
+      pos = el;
+    }
+    return {orden:orden, salto:-1};
+  }
+
+  const may = A.filter(c => c > x).sort((p, q) => p - q);
+  const men = A.filter(c => c < x).sort((p, q) => p - q);
+  const igual = A.filter(c => c === x);
+
+  if(algo === 'SASC')
+    return {orden: igual.concat(may, men.slice().reverse()), salto:-1};
+  if(algo === 'SDESC')
+    return {orden: igual.concat(men.slice().reverse(), may), salto:-1};
+
+  // SCAN-C: sube, salta a la menor y vuelve a subir
+  const orden = igual.concat(may, men);
+  const salto = (may.length && men.length) ? (igual.length + may.length) : -1;
+  return {orden:orden, salto:salto};
+}
+
+function simularDisco(x, A, algo, empate){
+  const r = ordenVisita(x, A, algo, empate);
+  const filas = [{paso:0, cil:x, dist:null, salto:false}];
+  let pos = x, total = 0, distSalto = 0;
+  r.orden.forEach((c, i) => {
+    const d = Math.abs(c - pos);
+    const esSalto = (i === r.salto);
+    total += d;
+    if(esSalto) distSalto = d;
+    filas.push({paso:i + 1, cil:c, dist:d, salto:esSalto});
+    pos = c;
+  });
+  return {filas:filas, total:total, distSalto:distSalto, haySalto:r.salto >= 0};
+}
+
+function totalDe(x, A, algo, empate, sumarSalto){
+  const s = simularDisco(x, A, algo, empate);
+  return (algo === 'CSCAN' && s.haySalto && !sumarSalto) ? s.total - s.distSalto : s.total;
+}
+
+/* ======================= VALIDACION ======================= */
+
+function leerPets(){
+  const txt = document.getElementById('pets').value.trim();
+  if(!txt) return null;
+  const partes = txt.split(/[\s,;]+/).filter(v => v !== '');
+  const nums = [];
+  for(const v of partes){
+    const n = Number(v);
+    if(!Number.isInteger(n) || n < 0) return null;
+    nums.push(n);
+  }
+  return nums.length ? nums : null;
+}
+
+function validar(){
+  const e = [];
+  const A = leerPets();
+  const x = Number(document.getElementById('inicio').value);
+  const cmax = Number(document.getElementById('cmax').value);
+  if(A === null) e.push('Las solicitudes deben ser una lista de enteros mayores o iguales a 0, separados por comas o espacios.');
+  if(!Number.isInteger(x) || x < 0) e.push('La posición inicial debe ser un entero mayor o igual a 0.');
+  if(!Number.isInteger(cmax) || cmax < 1) e.push('El cilindro máximo debe ser un entero mayor o igual a 1.');
+  if(A && Number.isInteger(cmax)){
+    const fuera = A.filter(c => c > cmax);
+    if(fuera.length) e.push('Estas solicitudes se salen del disco (máximo ' + cmax + '): ' + fuera.join(', ') + '.');
+  }
+  if(Number.isInteger(x) && Number.isInteger(cmax) && x > cmax)
+    e.push('La posición inicial (' + x + ') se sale del disco (máximo ' + cmax + ').');
+  return e;
+}
+
+/* ======================= GRAFICA ======================= */
+
+function grafica(s, x, cmax, titulo){
+  const izq = 46, der = 28, arr = 46, aba = 20;
+  const ancho = 660, filaH = 44;
+  const plotW = ancho - izq - der;
+  const alto = arr + (s.filas.length - 1) * filaH + aba;
+  const px = c => izq + (c / cmax) * plotW;
+  const py = i => arr + i * filaH;
+
+  // marcas del eje: cada 10 si el disco es chico, si no 10 divisiones
+  const salto = cmax <= 120 ? 10 : Math.ceil(cmax / 10 / 10) * 10;
+  let g = '<svg viewBox="0 0 ' + ancho + ' ' + alto + '" width="' + ancho + '" height="' + alto +
+          '" role="img" aria-label="' + titulo + '">';
+
+  // rejilla vertical y números del eje X, arriba
+  for(let c = 0; c <= cmax; c += salto){
+    g += '<line x1="' + px(c) + '" y1="' + (arr - 14) + '" x2="' + px(c) + '" y2="' + (alto - aba) +
+         '" stroke="var(--rejilla)" stroke-width="1"/>';
+    g += '<text x="' + px(c) + '" y="' + (arr - 20) + '" text-anchor="middle" font-size="11" fill="var(--muted)">' + c + '</text>';
+  }
+  if(cmax % salto !== 0){
+    g += '<line x1="' + px(cmax) + '" y1="' + (arr - 14) + '" x2="' + px(cmax) + '" y2="' + (alto - aba) +
+         '" stroke="var(--rejilla)" stroke-width="1"/>';
+    g += '<text x="' + px(cmax) + '" y="' + (arr - 20) + '" text-anchor="middle" font-size="11" fill="var(--muted)">' + cmax + '</text>';
+  }
+
+  // segmentos del recorrido
+  for(let i = 1; i < s.filas.length; i++){
+    const a = s.filas[i - 1], b = s.filas[i];
+    const col = b.salto ? 'var(--salto)' : 'var(--traza)';
+    g += '<line x1="' + px(a.cil) + '" y1="' + py(i - 1) + '" x2="' + px(b.cil) + '" y2="' + py(i) +
+         '" stroke="' + col + '" stroke-width="2"' + (b.salto ? ' stroke-dasharray="6 4"' : '') + '/>';
+  }
+
+  // puntos y etiquetas
+  s.filas.forEach((f, i) => {
+    const alaIzq = px(f.cil) > izq + plotW * 0.82;
+    g += '<circle cx="' + px(f.cil) + '" cy="' + py(i) + '" r="4.5" fill="var(--punto)"/>';
+    g += '<text x="' + (px(f.cil) + (alaIzq ? -9 : 9)) + '" y="' + (py(i) + 4) +
+         '" text-anchor="' + (alaIzq ? 'end' : 'start') + '" font-size="12" font-weight="600" fill="var(--txt)">' +
+         f.cil + '</text>';
+    g += '<text x="8" y="' + (py(i) + 4) + '" font-size="11" fill="var(--muted)">' + i + '</text>';
+  });
+  g += '<text x="8" y="' + (arr - 20) + '" font-size="11" fill="var(--muted)">paso</text>';
+  g += '</svg>';
+  return g;
+}
+
+/* ======================= RENDER ======================= */
+
+function pintarRegla(){
+  let h = '<div class="critbox">' + REGLA[algoritmo] + '</div>';
+  if(algoritmo === 'SSTF')
+    h += '<div class="critbox">Si dos solicitudes quedan <b>a la misma distancia</b>, decide la opción que escojas arriba. ' +
+         'Tu profesor no ha dicho cuál usa, así que vale la pena preguntárselo.</div>';
+  if(algoritmo === 'CSCAN')
+    h += '<div class="critbox">El <b>salto de regreso</b> va punteado en rojo en la gráfica. Si se suma o no al recorrido ' +
+         'total tampoco está confirmado: abajo se muestran los dos valores.</div>';
+  document.getElementById('panelRegla').innerHTML = h;
+}
+
+function render(){
+  const x = datos.x, A = datos.A, cmax = datos.cmax;
+  const empate = document.getElementById('empate').value;
+  const sumar = document.getElementById('sumarSalto').checked;
+  const s = simularDisco(x, A, algoritmo, empate);
+
+  let h = '<table class="xl"><thead><tr><th>Paso</th><th>Cilindro</th><th>Distancia</th></tr></thead><tbody>';
+  for(const f of s.filas){
+    h += '<tr class="' + (f.salto ? 'salto' : '') + '"><td>' + f.paso + '</td><td><b>' + f.cil + '</b></td><td>' +
+         (f.dist === null ? 'inicio' : f.dist + (f.salto ? ' &larr; salto' : '')) + '</td></tr>';
+  }
+  const totalMostrado = (algoritmo === 'CSCAN' && s.haySalto && !sumar) ? s.total - s.distSalto : s.total;
+  h += '<tr class="tot"><td colspan="2">Recorrido total</td><td>' + totalMostrado + '</td></tr>';
+  document.getElementById('tabla').innerHTML = h + '</tbody></table>';
+
+  document.getElementById('total').textContent =
+    'Recorrido total = ' + totalMostrado + ' cilindros';
+  document.getElementById('pieTotal').innerHTML =
+    (algoritmo === 'CSCAN' && s.haySalto)
+      ? 'Con el salto: <b>' + s.total + '</b> · sin el salto: <b>' + (s.total - s.distSalto) +
+        '</b>. El salto mide ' + s.distSalto + ' cilindros.'
+      : 'Promedio por solicitud: ' + (Math.round(totalMostrado / A.length * 100) / 100) + ' cilindros.';
+
+  document.getElementById('gráfica').innerHTML =
+    grafica(s, x, cmax, NOMBRE[algoritmo] + ', recorrido ' + totalMostrado) +
+    '<p class="hint">Los pasos bajan de arriba hacia abajo; los números de arriba son los cilindros.</p>';
+
+  let c = '<table class="xl"><thead><tr><th>Algoritmo</th><th>Orden de visita</th><th>Recorrido</th></tr></thead><tbody>';
+  let mejor = Infinity;
+  ORDEN.forEach(a => { mejor = Math.min(mejor, totalDe(x, A, a, empate, sumar)); });
+  ORDEN.forEach(a => {
+    const tt = totalDe(x, A, a, empate, sumar);
+    const o = ordenVisita(x, A, a, empate).orden;
+    const act = (a === algoritmo) ? ' style="outline:2px solid var(--accent);outline-offset:-2px"' : '';
+    c += '<tr' + act + '><td><b>' + NOMBRE[a] + '</b></td><td style="text-align:left">' +
+         x + ' &rarr; ' + o.join(' &rarr; ') + '</td><td' +
+         (tt === mejor ? ' style="background:var(--okbg);color:var(--okTxt);font-weight:700"' : '') +
+         '>' + tt + '</td></tr>';
+  });
+  document.getElementById('comparacion').innerHTML = c + '</tbody></table>';
+  document.getElementById('pieComp').textContent =
+    'El menor recorrido va resaltado. El mínimo teórico de este ejercicio es ' +
+    ((Math.max.apply(null, A) - Math.min.apply(null, A)) +
+     Math.min(Math.abs(x - Math.min.apply(null, A)), Math.abs(Math.max.apply(null, A) - x))) + ' cilindros.';
+}
+
+/* ======================= INTERFAZ ======================= */
+
+function mostrarErrores(lista){
+  const box = document.getElementById('error');
+  if(lista.length === 0){ box.hidden = true; return; }
+  box.hidden = false;
+  box.textContent = lista.join('\n');
+}
+
+function simularYRender(){
+  const errs = validar();
+  mostrarErrores(errs);
+  if(errs.length){ document.getElementById('resultados').hidden = true; return; }
+  datos = {x:Number(document.getElementById('inicio').value),
+           A:leerPets(),
+           cmax:Number(document.getElementById('cmax').value)};
+  document.getElementById('resultados').hidden = false;
+  render();
+}
+
+function sincronizarCampos(){
+  document.getElementById('wrapEmp').hidden   = (algoritmo !== 'SSTF');
+  document.getElementById('wrapSalto').hidden = (algoritmo !== 'CSCAN');
+}
+
+document.getElementById('algo').addEventListener('change', e => {
+  algoritmo = e.target.value;
+  sincronizarCampos();
+  pintarRegla();
+  if(!document.getElementById('resultados').hidden) render();
+});
+['empate','sumarSalto'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    if(!document.getElementById('resultados').hidden) render();
+  });
+});
+['inicio','pets','cmax'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    document.getElementById('resultados').hidden = true;
+  });
+});
+
+(function(){
+  const sel = document.getElementById('selEj');
+  let h = '<option value="">Cargar ejemplo&hellip;</option>';
+  EJEMPLOS.forEach((e, i) => h += '<option value="' + i + '">' + e.rot + '</option>');
+  sel.innerHTML = h;
+  sel.addEventListener('change', ev => {
+    const i = ev.target.value;
+    if(i === '') return;
+    const e = EJEMPLOS[+i];
+    document.getElementById('inicio').value = e.x;
+    document.getElementById('pets').value = e.a.join(', ');
+    document.getElementById('cmax').value = 100;
+    simularYRender();
+  });
+})();
+
+document.getElementById('btnAzar').addEventListener('click', () => {
+  const azar = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const n = azar(5, 7);
+  const vistos = {}, A = [];
+  while(A.length < n){
+    const c = azar(0, 100);
+    if(!vistos[c]){ vistos[c] = true; A.push(c); }
+  }
+  document.getElementById('inicio').value = azar(10, 90);
+  document.getElementById('pets').value = A.join(', ');
+  document.getElementById('cmax').value = 100;
+  document.getElementById('selEj').value = '';
+  simularYRender();
+});
+
+document.getElementById('btnSim').addEventListener('click', simularYRender);
+
+/* ======================= TEMA ======================= */
+
+function aplicarTema(t){
+  document.documentElement.setAttribute('data-tema', t);
+  document.getElementById('btnTema').textContent = (t === 'oscuro') ? 'Modo claro' : 'Modo oscuro';
+  try{ localStorage.setItem('tema', t); }catch(e){}
+}
+function temaGuardado(){
+  let t = null;
+  try{ t = localStorage.getItem('tema'); }catch(e){}
+  if(t === 'claro' || t === 'oscuro') return t;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'oscuro' : 'claro';
+}
+document.getElementById('btnTema').addEventListener('click', () => {
+  aplicarTema(document.documentElement.getAttribute('data-tema') === 'oscuro' ? 'claro' : 'oscuro');
+});
+
+aplicarTema(temaGuardado());
+sincronizarCampos();
+pintarRegla();
+simularYRender();
+</script>
+</body>
+</html>
