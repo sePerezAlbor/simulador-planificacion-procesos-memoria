@@ -16,7 +16,7 @@ Recibe una cola de trabajo y simula la planificación mostrando lo mismo que se 
 
 En los diagramas, el rótulo `Px(z)` significa el proceso `Px` con `z` unidades pendientes al inicio de esa celda. `LIBRE` marca el recurso ocioso.
 
-**Tipos de ejercicio:** solo CPU, y CPU – I/O – CPU (tres ráfagas, un único dispositivo de I/O).
+**Tipos de ejercicio:** solo CPU, y CPU – I/O – CPU con el número de ráfagas de E/S que se quiera. Las ráfagas alternan CPU e I/O empezando y terminando siempre en CPU, así que con *n* ráfagas de E/S hay *n+1* de CPU. Un único dispositivo de I/O.
 
 | Algoritmo | Orden de desempate |
 |---|---|
@@ -85,7 +85,7 @@ Une las dos anteriores. Aquí la memoria es el **filtro de entrada**: un proceso
 
 La Cola de Trabajo gana una columna de **Tamaño (K)**, y desaparece la de *tiempo en el sistema*: lo que el proceso dura en memoria ya no es un dato, sale de sus ráfagas.
 
-Funciona con los dos tipos de ejercicio (solo CPU y CPU – I/O – CPU) y con los seis algoritmos de planificación.
+Funciona con los dos tipos de ejercicio (solo CPU y CPU – I/O – CPU, con el número de ráfagas de E/S que se quiera) y con los seis algoritmos de planificación.
 
 ### Reglas propias
 
