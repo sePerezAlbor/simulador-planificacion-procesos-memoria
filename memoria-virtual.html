@@ -205,13 +205,13 @@ const REGLA = {
 };
 
 const EJEMPLOS = [
-  {rot:'Ejercicio de clase',            n:3, c:[2,3,2,4,5,3,4,8,7,4,3,2]},
-  {rot:'Libro (Silberschatz)',          n:3, c:[7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1]},
-  {rot:'Belady · 3 marcos',             n:3, c:[1,2,3,4,1,2,5,1,2,3,4,5]},
-  {rot:'Belady · 4 marcos',             n:4, c:[1,2,3,4,1,2,5,1,2,3,4,5]},
-  {rot:'Bucle de 4 páginas',            n:3, c:[1,2,3,4,1,2,3,4,1,2,3,4]},
-  {rot:'Bucle de 5 páginas',            n:4, c:[1,2,3,4,5,1,2,3,4,5,1,2,3,4,5]},
-  {rot:'Páginas calientes + bucle',     n:3, c:[1,2,1,3,1,2,4,5,6,7,4,5,6,7,1,2,1,2]}
+  {rot:'M1 · Ejercicio de clase',          n:3, c:[2,3,2,4,5,3,4,8,7,4,3,2]},
+  {rot:'M2 · Muchos aciertos',             n:3, c:[1,2,3,1,4,1,2,5,1,2,3,1]},
+  {rot:'M3 · Los cuatro dan distinto',     n:3, c:[1,3,1,5,3,6,1,3,2,5,5,7,4,2]},
+  {rot:'M4 · Belady · 3 marcos',           n:3, c:[1,2,3,4,1,2,5,1,2,3,4,5]},
+  {rot:'M5 · Belady · 4 marcos (mismos)',  n:4, c:[1,2,3,4,1,2,5,1,2,3,4,5]},
+  {rot:'M6 · Bucle de 4 páginas',          n:3, c:[1,2,3,4,1,2,3,4,1,2,3,4]},
+  {rot:'M7 · Cadena del libro (20 refs)',  n:3, c:[7,0,1,2,0,3,0,4,2,3,0,3,2,1,2,0,1,7,0,1]}
 ];
 
 let algoritmo = 'FIFO';
@@ -453,7 +453,7 @@ document.getElementById('algo').addEventListener('change', e => {
 
 (function(){
   const sel = document.getElementById('selEj');
-  let h = '<option value="">Cargar ejemplo&hellip;</option>';
+  let h = '<option value="">Cargar ejercicio de la serie&hellip;</option>';
   EJEMPLOS.forEach((e, i) => h += '<option value="' + i + '">' + e.rot + '</option>');
   sel.innerHTML = h;
   sel.addEventListener('change', ev => {

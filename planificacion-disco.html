@@ -193,12 +193,12 @@ const REGLA = {
 };
 
 const EJEMPLOS = [
-  {rot:'Ejercicio de clase',          x:50, a:[24,16,45,2,78,34]},
-  {rot:'Mismas solicitudes, inicio 30',x:30, a:[24,16,45,2,78,34]},
-  {rot:'Caso donde SSTF falla',       x:50, a:[53,40,30,20,10,99]},
-  {rot:'Inicio cerca del borde',      x:90, a:[10,35,60,85,95]},
-  {rot:'Todas de un lado',            x:20, a:[30,55,70,90]},
-  {rot:'Empate de distancias',        x:50, a:[30,35,65,70,40]}
+  {rot:'D1 · Ejercicio de clase',            x:50, a:[24,16,45,2,78,34]},
+  {rot:'D2 · Empate en SSTF',                x:90, a:[10,35,60,85,95]},
+  {rot:'D3 · Todas las solicitudes de un lado', x:20, a:[30,55,70,90]},
+  {rot:'D4 · SCAN asc muy distinto de desc', x:70, a:[12,5,88,95,40,61]},
+  {rot:'D5 · Donde SSTF se equivoca',        x:50, a:[53,40,30,20,10,99]},
+  {rot:'D6 · Siete solicitudes',             x:35, a:[82,14,68,3,47,91,26]}
 ];
 
 let algoritmo = 'FCFS';
@@ -457,7 +457,7 @@ document.getElementById('algo').addEventListener('change', e => {
 
 (function(){
   const sel = document.getElementById('selEj');
-  let h = '<option value="">Cargar ejemplo&hellip;</option>';
+  let h = '<option value="">Cargar ejercicio de la serie&hellip;</option>';
   EJEMPLOS.forEach((e, i) => h += '<option value="' + i + '">' + e.rot + '</option>');
   sel.innerHTML = h;
   sel.addEventListener('change', ev => {
