@@ -202,8 +202,10 @@ const REGLA = {
   FIFO:'<b>FIFO.</b> Sale la página que lleva más tiempo en memoria. El puntero marca el marco de la más antigua ' +
        'y <b>solo avanza cuando entra una página</b> (carga o fallo), nunca en un acierto.',
   OPT: '<b>Óptimo.</b> Sale la página que volverá a usarse más tarde. Cada página lleva <i>página(D)</i>, donde D es ' +
-       'en cuántos pasos vuelve a aparecer. Si no vuelve a aparecer se le pone <b>99</b>, y ese 99 también baja 1 por paso. ' +
-       'Sale la de <b>mayor</b> número.',
+       'en cuántos pasos vuelve a aparecer. El contador baja 1 por paso y <b>no se detiene en 0</b>: una página que ya ' +
+       'no se vuelve a usar queda en 0 y de ahí sigue a &minus;1, &minus;2, etc. ' +
+       'Salen primero las que están en <b>0 o en negativo</b>, porque ya no sirven; entre varias de esas, la de ' +
+       '<b>mayor</b> número. Si todas vuelven a usarse, sale la de mayor número también.',
   LRU: '<b>LRU.</b> Sale la que lleva más tiempo sin usarse. Cada página lleva <i>página(C)</i>: al referenciarse recibe ' +
        'un valor igual al número de marcos y baja 1 por paso. Sale la de <b>menor</b> número.',
   CLOCK:'<b>Clock.</b> Cada marco tiene un bit de uso (<b>*</b>). El bit se activa <b>solo cuando la página vuelve a aparecer</b>; ' +
@@ -237,10 +239,14 @@ function simularMV(R, N, algo){
   let punt = 0, fallos = 0, cargas = 0, aciertos = 0;
   const out = [];
 
+  // Devuelve el paso de la próxima aparición, o null si la página ya no vuelve.
   const proxima = (p, t) => {
     for(let k = t + 1; k < L; k++) if(R[k] === p) return k;
-    return t + 99;                       // no vuelve a aparecer
+    return null;
   };
+  // Valor que se escribe en la celda: pasos que faltan para volver a usarla.
+  // Si ya no vuelve, el contador sigue bajando desde 0 hacia negativos.
+  const valorD = (pg, t) => (obj[pg] === null) ? (uso[pg] - t) : (obj[pg] - t);
 
   for(let t = 0; t < L; t++){
     const p = R[t];
@@ -266,8 +272,14 @@ function simularMV(R, N, algo){
         if(vacio >= 0){
           k = vacio;                     // primer marco vacío, de izquierda a derecha
         }else if(algo === 'OPT'){
+          // Salen primero las que ya no vuelven a usarse (valor 0 o negativo).
+          // Entre varias, la de mayor número, que es la que lleva menos tiempo sin futuro.
           k = 0;
-          for(let i = 1; i < N; i++) if(obj[marco[i]] - t > obj[marco[k]] - t) k = i;
+          for(let i = 1; i < N; i++){
+            const sinK = obj[marco[k]] === null, sinI = obj[marco[i]] === null;
+            if(sinI && !sinK) k = i;
+            else if(sinI === sinK && valorD(marco[i], t) > valorD(marco[k], t)) k = i;
+          }
         }else{                           // LRU
           k = 0;
           for(let i = 1; i < N; i++) if(uso[marco[i]] < uso[marco[k]]) k = i;
@@ -287,7 +299,7 @@ function simularMV(R, N, algo){
     // Etiqueta de cada marco al final del paso
     const celdas = marco.map((pg, i) => {
       if(pg === null) return null;
-      if(algo === 'OPT')   return pg + '(' + (obj[pg] - t) + ')';
+      if(algo === 'OPT')   return pg + '(' + valorD(pg, t) + ')';
       if(algo === 'LRU')   return pg + '(' + (N - (t - uso[pg])) + ')';
       if(algo === 'CLOCK') return pg + (bit[i] ? '*' : '');
       return String(pg);

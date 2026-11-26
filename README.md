@@ -109,7 +109,7 @@ Convenciones del curso, que no son las de los libros:
 
 - Un **fallo** es solo cuando hay que **sacar** una página. Si entra a un marco vacío es una **carga** y no cuenta.
 - **Tasa de fallos** = fallos / número de referencias.
-- En **Óptimo**, cada página lleva `página(D)`: en cuántos pasos vuelve a aparecer. Si no vuelve, se le pone **99**, y ese 99 también baja 1 por paso. Sale la de mayor número.
+- En **Óptimo**, cada página lleva `página(D)`: en cuántos pasos vuelve a aparecer. El contador baja 1 por paso y **no se detiene en 0**: una página que ya no se usa queda en 0 y sigue a −1, −2… Salen primero las que están en **0 o en negativo**; entre varias de esas, la de mayor número.
 - En **LRU**, cada página lleva `página(C)`: al referenciarse recibe un valor igual al número de marcos y baja 1 por paso. Sale la de menor número.
 - En **Clock**, el bit de uso se activa **solo cuando la página vuelve a aparecer**; una página nueva entra con el bit en 0.
 
