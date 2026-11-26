@@ -202,10 +202,9 @@ const REGLA = {
   FIFO:'<b>FIFO.</b> Sale la página que lleva más tiempo en memoria. El puntero marca el marco de la más antigua ' +
        'y <b>solo avanza cuando entra una página</b> (carga o fallo), nunca en un acierto.',
   OPT: '<b>Óptimo.</b> Sale la página que volverá a usarse más tarde. Cada página lleva <i>página(D)</i>: en cuántos ' +
-       'pasos vuelve a aparecer, y baja 1 por paso. Si una página <b>entra</b> a memoria y ya no vuelve a aparecer, ' +
-       'se le pone <b>99</b>. Si recibe un <b>acierto</b> y ya no vuelve, el contador no se reinicia: sigue bajando ' +
-       'hasta <b>0</b> y de ahí a &minus;1, &minus;2, etc. ' +
-       'Sale la de <b>mayor</b> número, pero las que están en <b>0 o en negativo</b> salen primero.',
+       'pasos vuelve a pedirse. Si al pedirla ya no vuelve a aparecer en la cadena, se le pone <b>99</b>. ' +
+       'El contador baja 1 por paso y <b>nunca se detiene en 0</b>: si llega ahí, sigue a &minus;1, &minus;2, etc. ' +
+       'Sale la de <b>mayor</b> número.',
   LRU: '<b>LRU.</b> Sale la que lleva más tiempo sin usarse. Cada página lleva <i>página(C)</i>: al referenciarse recibe ' +
        'un valor igual al número de marcos y baja 1 por paso. Sale la de <b>menor</b> número.',
   CLOCK:'<b>Clock.</b> Cada marco tiene un bit de uso (<b>*</b>). El bit se activa <b>solo cuando la página vuelve a aparecer</b>; ' +
@@ -239,18 +238,12 @@ function simularMV(R, N, algo){
   let punt = 0, fallos = 0, cargas = 0, aciertos = 0;
   const out = [];
 
-  const proximaAparicion = (p, t) => {
-    for(let k = t + 1; k < L; k++) if(R[k] === p) return k;
-    return null;
-  };
-  // Al ENTRAR a memoria una página que ya no vuelve, se le pone 99.
-  // En un ACIERTO sin futuro no se reinicia nada: el contador sigue bajando solo,
-  // así que llega a 0 y de ahí a -1, -2, ...
-  const fijarObjetivo = (p, t, entro) => {
-    const k = proximaAparicion(p, t);
-    if(k !== null)      obj[p] = k;
-    else if(entro)      obj[p] = t + 99;
-    // si fue acierto y ya no vuelve, obj[p] se queda como estaba
+  // Cada vez que se referencia una página se recalcula en cuántos pasos vuelve.
+  // Si ya no vuelve a pedirse, se le pone 99 en ese momento.
+  // De ahí el contador baja 1 por paso sin detenerse: ... 2, 1, 0, -1, -2, ...
+  const fijarObjetivo = (p, t) => {
+    for(let k = t + 1; k < L; k++) if(R[k] === p){ obj[p] = k; return; }
+    obj[p] = t + 99;
   };
   const valorD = (pg, t) => obj[pg] - t;
 
@@ -278,14 +271,8 @@ function simularMV(R, N, algo){
         if(vacio >= 0){
           k = vacio;                     // primer marco vacío, de izquierda a derecha
         }else if(algo === 'OPT'){
-          // Sale la de mayor número, pero las que ya están en 0 o en negativo salen primero.
           k = 0;
-          for(let i = 1; i < N; i++){
-            const vk = valorD(marco[k], t), vi = valorD(marco[i], t);
-            const expK = vk <= 0, expI = vi <= 0;
-            if(expI && !expK) k = i;
-            else if(expI === expK && vi > vk) k = i;
-          }
+          for(let i = 1; i < N; i++) if(valorD(marco[i], t) > valorD(marco[k], t)) k = i;
         }else{                           // LRU
           k = 0;
           for(let i = 1; i < N; i++) if(uso[marco[i]] < uso[marco[k]]) k = i;
@@ -299,7 +286,7 @@ function simularMV(R, N, algo){
       if(algo === 'FIFO' || algo === 'CLOCK') punt = (punt + 1) % N;
     }
 
-    fijarObjetivo(p, t, resultado !== 'Acierto');
+    fijarObjetivo(p, t);
     uso[p] = t;
 
     // Etiqueta de cada marco al final del paso
