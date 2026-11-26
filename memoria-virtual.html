@@ -62,9 +62,16 @@
   .nav a.activo{background:var(--accent);border-color:var(--accent);color:var(--onAccent)}
 
   table.xl{border-collapse:collapse;font-size:14px;background:var(--card)}
-  table.xl th,table.xl td{border:1px solid var(--line);padding:4px 9px;text-align:center;white-space:nowrap}
+  table.xl th,table.xl td{border:1px solid var(--line);padding:4px 6px;text-align:center;white-space:nowrap}
   table.xl th{background:var(--th);font-weight:600;font-size:13px}
-  table.xl td.et{background:var(--th);font-weight:600;font-size:13px;text-align:left;position:sticky;left:0}
+  /* la tabla de pasos se ve como una hoja de cálculo: columnas iguales y rejilla pareja */
+  table.pasos th,table.pasos td{min-width:56px;height:30px}
+  table.pasos th.et,table.pasos td.et{min-width:104px;width:104px;text-align:left;
+       background:var(--th);font-weight:600;font-size:13px;position:sticky;left:0;z-index:1}
+  table.pasos thead th{font-size:13px}
+  .pt{display:inline-block;width:14px;color:var(--accent);font-weight:700;text-align:left}
+  /* Carga/Fallo/Acierto son palabras largas: letra más chica para no ensanchar la columna */
+  table.pasos td.res{font-size:11px;letter-spacing:-.2px}
   td.carga{background:var(--carga);color:var(--cargaTxt);font-weight:600}
   td.fallo{background:var(--fallo);color:var(--falloTxt);font-weight:600}
   td.vac{background:var(--vacio);color:var(--vacioTxt)}
@@ -336,7 +343,12 @@ function tabla(hasta){
   const usaPunt = (algoritmo === 'FIFO' || algoritmo === 'CLOCK');
   const cols = hasta + 1;
 
-  let h = '<table class="xl"><tbody>';
+  // la referencia encabeza cada columna, igual que en una hoja de cálculo
+  let h = '<table class="xl pasos"><thead><tr><th class="et">Referencia</th>';
+  for(let t = 0; t < cols; t++)
+    h += '<th' + (t === hasta ? ' class="ahora"' : '') + '>' + pasos[t].ref + '</th>';
+  h += '</tr></thead><tbody>';
+
   const fila = (etiqueta, celdas, clases) => {
     let f = '<tr><td class="et">' + etiqueta + '</td>';
     for(let t = 0; t < cols; t++){
@@ -346,18 +358,21 @@ function tabla(hasta){
     return f + '</tr>';
   };
 
-  h += fila('Paso',       t => t);
-  h += fila('Referencia', t => '<b>' + pasos[t].ref + '</b>');
   for(let i = 0; i < N; i++){
     h += fila('Marco ' + i,
-      t => pasos[t].celdas[i] === null ? '' : pasos[t].celdas[i],
+      t => {
+        const v = pasos[t].celdas[i];
+        // la flecha del puntero va dentro del propio marco al que apunta
+        const flecha = (usaPunt && pasos[t].punt === i) ? '&rarr;' : '';
+        return '<span class="pt">' + flecha + '</span>' + (v === null ? '' : v);
+      },
       t => (pasos[t].celdas[i] === null ? 'vac' : '') + (pasos[t].k === i ? ' nueva' : ''));
   }
-  if(usaPunt) h += fila('Puntero', t => '&rarr; M' + pasos[t].punt);
+
   h += fila('Víctima',   t => pasos[t].victima === null ? '' : pasos[t].victima);
   h += fila('Resultado', t => pasos[t].resultado,
-                         t => pasos[t].resultado === 'Fallo' ? 'fallo' :
-                              pasos[t].resultado === 'Carga' ? 'carga' : '');
+                         t => 'res ' + (pasos[t].resultado === 'Fallo' ? 'fallo' :
+                              pasos[t].resultado === 'Carga' ? 'carga' : ''));
   h += '</tbody></table>';
   return h;
 }
@@ -375,8 +390,10 @@ function render(){
   document.getElementById('tituloTabla').textContent =
     NOMBRE[algoritmo] + ' — ' + datos.N + ' marcos';
   document.getElementById('tabla').innerHTML = tabla(paso);
+  const usaPunt = (algoritmo === 'FIFO' || algoritmo === 'CLOCK');
   document.getElementById('pieTabla').innerHTML =
     'La columna amarilla es el paso actual. El marco con borde azul es el que acaba de recibir la página. ' +
+    (usaPunt ? 'La <b>flecha &rarr;</b> dentro de un marco indica a cuál apunta el puntero al terminar el paso. ' : '') +
     (algoritmo === 'OPT'   ? 'Entre paréntesis, en cuántos pasos vuelve a aparecer cada página (99 = no vuelve).' :
      algoritmo === 'LRU'   ? 'Entre paréntesis, el valor que baja 1 por paso desde la última vez que se usó.' :
      algoritmo === 'CLOCK' ? 'El asterisco marca el bit de uso en 1.' : '');
